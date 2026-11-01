@@ -104,6 +104,7 @@
     if (name === "herbs-intro") renderHerbsIntro();
     if (name === "tip") renderTip();
     if (name === "settings") renderSettings();
+    if (window.LZFarm) LZFarm.onShow(name);
     window.scrollTo(0, 0);
     var h = el.querySelector("h1, h2, .riddle"); if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: true }); }
   }
@@ -115,12 +116,20 @@
   document.addEventListener("click", function (e) {
     var b = e.target.closest("[data-go]");
     if (b) { e.preventDefault(); var t = b.getAttribute("data-go"); if (t === "home") goHome(); else go(t); return; }
-    var back = e.target.closest("[data-back]"); if (back) { e.preventDefault(); goHome(); }
+    var back = e.target.closest("[data-back]");
+    if (back) {
+      e.preventDefault();
+      if (back.getAttribute("data-back") === "prev") {
+        var from = current; history.back();
+        setTimeout(function () { if (current === from) go("farm", true); }, 350);
+      } else goHome();
+    }
   });
   function goHome() {
+    var from = current;
     if (history.state && history.state.s && history.state.s !== "home") history.back();
     // подстраховка: если вернуться по истории не удалось (напр. открыли по прямой ссылке)
-    setTimeout(function () { if (current !== "home") go("home", true); }, 350);
+    setTimeout(function () { if (current === from && current !== "home") go("home", true); }, 350);
   }
 
   /* ---------- Главная ---------- */
@@ -211,6 +220,8 @@
       streakMsg = "🌿 Серия: " + S.streak + " " + plural(S.streak, "день", "дня", "дней") + " подряд! Бонус дня +20 очков.";
     }
     save();
+    var coins = (Q.daily && window.LZFarm) ? LZFarm.onQuizDone(Q.right) : 0;
+    if (coins) streakMsg += (streakMsg ? " " : "") + "В огород: +" + coins + " " + plural(coins, "монета", "монеты", "монет") + ".";
     var n = Q.list.length;
     $("qr-title").textContent = Q.right === n ? "Великолепно!" : Q.right >= n - 2 ? "Отличный результат!" : "Хорошее начало!";
     $("qr-score").textContent = Q.right + " из " + n;
@@ -360,13 +371,19 @@
     b.onclick = function () { S.sound = +b.getAttribute("data-sound"); save(); renderSettings(); tone(true); };
   });
   $("btn-reset").onclick = function () {
-    confirmBox("Сбросить очки, уровень и серию дней? Это нельзя отменить.").then(function (yes) {
+    confirmBox("Сбросить очки, уровень, серию дней и весь огород? Это нельзя отменить.").then(function (yes) {
       if (!yes) return;
       var font = S.font, sound = S.sound;
       S = JSON.parse(JSON.stringify(defaults)); S.font = font; S.sound = sound; save();
+      if (window.LZFarm) LZFarm.reset();
       toast("Прогресс сброшен. Начинаем заново!");
     });
   };
+
+  /* ---------- Общий доступ для огорода ---------- */
+  window.LZ = { go: go, show: show, toast: toast, plural: plural, tone: tone, dayKey: dayKey, yesterdayKey: yesterdayKey,
+    current: function () { return current; } };
+  if (window.LZFarm) LZFarm.bind();
 
   /* ---------- Запуск ---------- */
   applyFont();
