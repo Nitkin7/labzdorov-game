@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="65%">
+      <stop offset="0" stop-color="#2f5a2c"/><stop offset="1" stop-color="#1c3a1d"/>
+    </radialGradient>
+    <linearGradient id="liq" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b7d36a"/><stop offset="1" stop-color="#6f9a32"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="226" fill="none" stroke="#c9a24a" stroke-width="10"/>
+  <!-- stems -->
+  <path d="M248 300 C240 230 220 180 180 140" stroke="#4f7d2e" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <path d="M260 300 C268 220 290 170 318 120" stroke="#4f7d2e" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <!-- leaves -->
+  <path d="M182 142 C140 128 118 150 112 176 C146 186 172 172 182 142Z" fill="#7fae4a"/>
+  <path d="M206 186 C176 200 168 228 176 250 C206 236 214 214 206 186Z" fill="#6c9c3c"/>
+  <path d="M184 140 C186 104 210 86 236 84 C238 116 218 136 184 140Z" fill="#8cbc55"/>
+  <path d="M282 196 C312 196 330 218 330 242 C300 242 284 224 282 196Z" fill="#6c9c3c"/>
+  <!-- chamomile -->
+  <g transform="translate(320 116)">
+    <g fill="#fbf7ea">
+      <ellipse rx="10" ry="30" cy="-26"/><ellipse rx="10" ry="30" cy="-26" transform="rotate(40)"/>
+      <ellipse rx="10" ry="30" cy="-26" transform="rotate(80)"/><ellipse rx="10" ry="30" cy="-26" transform="rotate(120)"/>
+      <ellipse rx="10" ry="30" cy="-26" transform="rotate(160)"/><ellipse rx="10" ry="30" cy="-26" transform="rotate(200)"/>
+      <ellipse rx="10" ry="30" cy="-26" transform="rotate(240)"/><ellipse rx="10" ry="30" cy="-26" transform="rotate(280)"/>
+      <ellipse rx="10" ry="30" cy="-26" transform="rotate(320)"/>
+    </g>
+    <circle r="17" fill="#e9b52f"/>
+  </g>
+  <!-- flask -->
+  <path d="M226 262 h60 v44 c50 16 82 56 82 102 c0 50 -50 72 -112 72 s-112 -22 -112 -72 c0 -46 32 -86 82 -102z" fill="#e8efe0" fill-opacity=".22" stroke="#e8efe0" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M154 404 c8 -30 50 -40 102 -40 s94 10 102 40 c0 40 -44 62 -102 62 s-102 -22 -102 -62z" fill="url(#liq)"/>
+  <rect x="216" y="252" width="80" height="16" rx="8" fill="#e8efe0"/>
+  <circle cx="230" cy="404" r="7" fill="#e3f0b8"/><circle cx="270" cy="424" r="5" fill="#e3f0b8"/><circle cx="292" cy="398" r="4" fill="#e3f0b8"/>
+</svg>
