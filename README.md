@@ -1,2 +1,12 @@
-# labzdorov-game
-«Лаборатория здоровья» — спокойная HTML5/PWA-игра о здоровье для групп ОК и ВК
+# Лаборатория здоровья — игра (прототип HTML5/PWA)
+Чистая статика, без сборки. Локально: `python3 -m http.server 8765` в этой папке → http://127.0.0.1:8765/
+- index.html, css/style.css — интерфейс (стиль A: крем, зелень, золото)
+- css/fonts.css — шрифты Lora и Nunito (OFL), встроены как data URI
+- css/images.css — фоны и картинки меню, встроены как data URI (в репозитории только текстовые файлы)
+- icons/icon.svg, icons/icon-maskable.svg — иконки PWA
+- js/data.js — 43 вопроса «Правда или миф», 18 трав, 14 советов дня
+- js/app.js — логика, прогресс в localStorage (ключ lz_game_v1)
+- js/platform.js — заглушки ОК/ВК (определение по URL, ?platform=ok|vk|web для теста; SDK_ENABLED=false)
+- manifest.json, sw.js — PWA и офлайн (при изменении файлов поднимите CACHE в sw.js)
+
+Онлайн (GitHub Pages): https://nitkin7.github.io/labzdorov-game/

@@ -1,0 +1,26 @@
+{
+  "name": "Лаборатория здоровья — игра",
+  "short_name": "Лаборатория здоровья",
+  "description": "Спокойная игра о здоровье и народных средствах: «Правда или миф» и «Собери травяной сбор».",
+  "lang": "ru",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fbf6e9",
+  "theme_color": "#1f3d20",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
