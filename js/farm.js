@@ -71,8 +71,8 @@
     size = size || 44;
     if (key === "honey") return svgJar("#e8a92a", size);
     var a = key.split(":");
-    if (a[0] === "f") return plantSVG(P[a[1]], 3, size);
-    if (a[0] === "d") return svgBundle(P[a[1]], size);
+    if (a[0] === "f") return plantImg(P[a[1]], 3, size);
+    if (a[0] === "d") return plantImg(P[a[1]], 3, size, "dried");
     var r = R[a[1]], first = Object.keys(r.need)[0];
     return svgTea(first === "honey" ? "#e8a92a" : (P[first].fl === "#ffffff" ? "#f2c230" : P[first].fl), size);
   }
@@ -91,13 +91,13 @@
     s = s.replace(/rotate\((\d+(?:\.\d+)?) [\d.]+ [\d.]+\)/g, function (m, a) { return "rotate(" + a + " " + x + " " + y + ")"; });
     return s + '<circle cx="' + x + '" cy="' + y + '" r="' + (r * 0.42) + '" fill="' + center + '"/>';
   }
-  function plantSVG(p, stage, size) {
+  function plantSVG(p, stage, size, cls) {
     size = size || 90;
     var s = "", g = p.leaf, base = 92;
     if (stage === 0) {
       s = '<path d="M50 92 C50 82 50 76 50 70" stroke="#4f7d2e" stroke-width="3.5" fill="none" stroke-linecap="round"/>' +
         leaf(42, 70, 9, 5, -25, "#7fb24e") + leaf(58, 68, 9, 5, 25, "#8cc057");
-      return svg(s, size);
+      return svg(s, size, cls);
     }
     var k = stage === 1 ? 0.55 : stage === 2 ? 0.82 : 1;
     if (p.kind === "leafy") {
@@ -158,7 +158,26 @@
         s += '<circle cx="' + b[0] + '" cy="' + (cy + b[1]) + '" r="3.6" fill="' + p.fl + '"/><circle cx="' + (b[0] + 3) + '" cy="' + (cy + b[1] + 3) + '" r="2.6" fill="' + p.fl + '"/>';
       });
     }
-    return svg(s, size);
+    return svg(s, size, cls);
+  }
+  /* Реалистичные акварельные рисунки (img/plants/<id>.svg — WebP внутри SVG, грузятся лениво).
+     Росток (стадия 0) рисуем сами; молодое растение — уменьшенный рисунок, взрослое — целиком.
+     Если картинка не загрузилась — показываем нарисованный вариант. */
+  var STAGE_H = [0, 62, 82, 100];
+  function plantImg(p, stage, size, cls) {
+    size = size || 90;
+    if (!p) return "";
+    if (stage === 0) return plantSVG(p, 0, size);
+    return '<span class="pimg st' + stage + (cls ? " " + cls : "") + '" style="width:' + size + "px;height:" + size + 'px">' +
+      '<img src="img/plants/' + p.id + '.svg" alt="" loading="lazy" decoding="async" style="height:' + STAGE_H[stage] + '%" onerror="this.parentNode.classList.add(\'fail\')">' +
+      plantSVG(p, stage, size, "pic pfb") + "</span>";
+  }
+  function custImg(o) {
+    var c = null;
+    for (var i = 0; i < FD.customers.length; i++) if (FD.customers[i].n === o.c) c = FD.customers[i];
+    var letter = esc(String(o.c).split(" ").pop().charAt(0));
+    if (!c || !c.img) return '<div class="avatar" aria-hidden="true">' + letter + "</div>";
+    return '<div class="avatar has-img" aria-hidden="true"><img src="img/people/' + c.img + '.svg" alt="" loading="lazy" decoding="async" onerror="this.parentNode.classList.remove(\'has-img\');this.replaceWith(\'' + letter + '\')"></div>';
   }
   function svgBundle(p, size) {
     var c = p.kind === "bush" ? p.fl : p.leaf, s = "";
@@ -425,7 +444,7 @@
   function seedSheet(i) {
     var lv = level(), rows = FD.plants.map(function (p) {
       var cost = seedCost(p), locked = p.lvl > lv, poor = F.coins < cost;
-      return '<div class="row-item' + (locked ? " locked" : "") + '">' + plantSVG(p, 3, 56) +
+      return '<div class="row-item' + (locked ? " locked" : "") + '">' + plantImg(p, 3, 64) +
         '<div class="row-text"><b>' + p.n + "</b><span>Растёт " + (F.harvested === 0 && p.id === "mint" && F.tut <= 1 ? "20 сек (первый урожай)" : minutesText(p.t)) +
         " · продажа " + coin(p.sell) + "</span>" +
         (locked ? '<span class="lock">Откроется на уровне ' + p.lvl + "</span>" : "") + "</div>" +
@@ -437,7 +456,7 @@
   }
   function bedSheet(i) {
     var b = F.beds[i], p = P[b.p], st = bedState(b);
-    openSheet(p.n, '<div class="center">' + plantSVG(p, st.stage, 150) +
+    openSheet(p.n, '<div class="center">' + plantImg(p, st.stage, 170) +
       '<p class="big-line">Созреет через <span data-timer="bed" data-i="' + i + '">' + fmtTime(st.left) + "</span></p>" +
       '<div class="progress big"><div class="progress-fill" style="width:' + st.pct.toFixed(0) + '%"></div></div>' +
       "<p class=\"muted\">Растение растёт само, даже когда игра закрыта.</p>" +
@@ -453,7 +472,7 @@
     }
     openSheet("Что высушить?", '<p class="muted">На одно место помещается до ' + BATCH + " пучков одной травы. Сушёные травы стоят дороже.</p>" + keys.map(function (key) {
       var id = key.slice(2), q = Math.min(BATCH, have(key));
-      return '<div class="row-item">' + plantSVG(P[id], 3, 56) + '<div class="row-text"><b>' + P[id].n + "</b><span>Есть: " + have(key) + " · сохнет " + fmtTime(dryDur(P[id])) +
+      return '<div class="row-item">' + plantImg(P[id], 3, 56) + '<div class="row-text"><b>' + P[id].n + "</b><span>Есть: " + have(key) + " · сохнет " + fmtTime(dryDur(P[id])) +
         "</span><span>Сушёная: " + coin(itemPrice("d:" + id)) + " за пучок</span></div>" +
         '<button class="btn btn-primary btn-sm" data-dry="' + id + '" data-r="' + r + '" data-k="' + k + '">Сушить × ' + q + "</button></div>";
     }).join(""));
@@ -495,7 +514,7 @@
       cls += " empty"; if (tut && tut.target === "bed-empty" && firstIdx("empty") === i) cls += " pulse";
     } else {
       var p = P[b.p];
-      inner = '<span class="bed-plant">' + plantSVG(p, st.stage, 96) + "</span>";
+      inner = '<span class="bed-plant">' + plantImg(p, st.stage, 118) + "</span>";
       if (st.st === "ready") { cls += " ready"; inner += '<span class="bed-name">' + p.n + '</span><span class="bed-label harvest">Собрать!</span>'; if (tut && tut.target === "bed-ready") cls += " pulse"; }
       else {
         cls += " grow" + (b.water ? " watered" : "");
@@ -573,9 +592,9 @@
           var st = slotState(s);
           if (st === "empty") return '<button class="slot empty' + (F.tut === 5 && r === 0 && k === firstEmptySlot() ? " pulse" : "") + '" data-slot="' + r + "-" + k + '"><span class="bed-plus" aria-hidden="true">+</span><span>Положить траву</span></button>';
           var p = P[s.h];
-          if (st === "done") return '<button class="slot done" data-slot="' + r + "-" + k + '">' + svgBundle(p, 56) + "<span><b>" + p.n + " × " + s.q + '</b></span><span class="harvest">Снять</span></button>';
+          if (st === "done") return '<button class="slot done" data-slot="' + r + "-" + k + '">' + plantImg(p, 3, 56, "dried") + "<span><b>" + p.n + " × " + s.q + '</b></span><span class="harvest">Снять</span></button>';
           var pct = Math.min(99, (now() - s.start) / (s.end - s.start) * 100);
-          return '<div class="slot dry" data-slotdry="' + r + "-" + k + '">' + svgBundle(p, 56) + "<span><b>" + p.n + " × " + s.q + '</b></span><span data-timer="slot" data-r="' + r + '" data-k="' + k + '">' + fmtTime(s.end - now()) + '</span><span class="bed-bar"><span style="width:' + pct.toFixed(0) + '%"></span></span></div>';
+          return '<div class="slot dry" data-slotdry="' + r + "-" + k + '">' + plantImg(p, 3, 56, "dried") + "<span><b>" + p.n + " × " + s.q + '</b></span><span data-timer="slot" data-r="' + r + '" data-k="' + k + '">' + fmtTime(s.end - now()) + '</span><span class="bed-bar"><span style="width:' + pct.toFixed(0) + '%"></span></span></div>';
         }).join("") + "</div></div>";
     }).join("");
     var recipes = FD.recipes.filter(recipeOpen).map(function (r) {
@@ -617,7 +636,7 @@
     var orders = F.orders.map(function (o, i) {
       if (o.next) return '<div class="order waiting"><div class="avatar" aria-hidden="true">…</div><div class="row-text"><b>Следующий покупатель</b><span>придёт через <span data-timer="order" data-i="' + i + '">' + fmtTime(o.next - now()) + "</span></span></div></div>";
       var h = have(o.key), ok = h >= o.q;
-      return '<div class="order' + (ok ? " can" : "") + '"><div class="avatar" aria-hidden="true">' + o.c.split(" ").pop().charAt(0) + '</div><div class="row-text"><b>' + esc(orderPhrase(o)) + '</b><span class="say">«' + esc(o.say) + "»</span>" +
+      return '<div class="order' + (ok ? " can" : "") + '">' + custImg(o) + '<div class="row-text"><b>' + esc(orderPhrase(o)) + '</b><span class="say">«' + esc(o.say) + "»</span>" +
         '<span class="order-need">' + itemIcon(o.key, 34) + " У вас: " + h + " из " + o.q + "</span><span>Награда: " + coin(o.reward) + " и " + o.xp + " опыта</span></div>" +
         '<button class="btn btn-secondary btn-sm" data-order="' + i + '"' + (ok ? "" : " disabled") + ">Отдать</button></div>";
     }).join("");
@@ -658,14 +677,14 @@
     var lv = level();
     $("guide-root").innerHTML = headerHTML() + '<h2 class="farm-title">Справочник растений</h2><p class="muted center">Нажмите на растение, чтобы прочитать о нём.</p><div class="guide-grid">' +
       FD.plants.map(function (p) {
-        return '<button class="guide-item' + (p.lvl > lv ? " locked" : "") + '" data-card="' + p.id + '">' + plantSVG(p, 3, 72) + "<b>" + p.n + "</b>" + (p.lvl > lv ? "<span>с уровня " + p.lvl + "</span>" : "") + "</button>";
+        return '<button class="guide-item' + (p.lvl > lv ? " locked" : "") + '" data-card="' + p.id + '">' + plantImg(p, 3, 84) + "<b>" + p.n + "</b>" + (p.lvl > lv ? "<span>с уровня " + p.lvl + "</span>" : "") + "</button>";
       }).join("") + '</div><p class="doctor-note">Перед применением любых трав посоветуйтесь с врачом.</p>';
   }
   var cardId = "mint";
   function renderPlant() {
     var p = P[cardId]; if (!$("plant-root") || !p) return;
     $("plant-root").innerHTML = '<div class="card center plant-card"><span class="pill">Карточка растения</span>' +
-      '<div class="plant-stages">' + [0, 1, 2, 3].map(function (s) { return plantSVG(p, s, s === 3 ? 130 : 64); }).join("") + "</div>" +
+      '<div class="plant-stages">' + [0, 1, 2, 3].map(function (s) { return plantImg(p, s, s === 3 ? 150 : 72); }).join("") + "</div>" +
       "<h2>" + p.n + '</h2><div class="gold-line"></div>' +
       '<div class="chips"><span>Растёт ' + minutesText(p.t) + "</span><span>Семена " + coin(p.seed) + "</span><span>Урожай " + coin(p.sell) + "</span><span>С уровня " + p.lvl + "</span></div>" +
       '<ul class="facts">' + p.facts.map(function (f) { return "<li>" + f + "</li>"; }).join("") + "</ul>" +
@@ -679,7 +698,7 @@
     var empty = F.beds.filter(function (b) { return !b; }).length;
     el.textContent = F.tut === 0 ? "Посадите первую мяту!" : ready ? "Урожай готов на " + ready + " " + L().plural(ready, "грядке", "грядках", "грядках") + "!" :
       empty ? "Есть свободные грядки: " + empty : "Растения растут · " + coinsWord(F.coins);
-    var t = $("farm-thumb"); if (t && !t.innerHTML) t.innerHTML = '<span class="thumb-bed">' + plantSVG(P.chamomile, 3, 46) + plantSVG(P.mint, 3, 46) + plantSVG(P.calendula, 3, 46) + "</span>";
+    var t = $("farm-thumb"); if (t && !t.innerHTML) t.innerHTML = '<span class="thumb-bed">' + plantImg(P.chamomile, 3, 50) + plantImg(P.mint, 3, 50) + plantImg(P.calendula, 3, 50) + "</span>";
   }
 
   /* ---------- Навигация внутри огорода ---------- */
@@ -760,6 +779,6 @@
 
   window.LZFarm = {
     onShow: onShow, onQuizDone: onQuizDone, reset: reset, bind: bind,
-    _state: function () { return F; }, _plantSVG: plantSVG
+    _state: function () { return F; }, _plantSVG: plantSVG, _plantImg: plantImg
   };
 })();
