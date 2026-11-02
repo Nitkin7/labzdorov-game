@@ -83,33 +83,33 @@
 
     <!-- АПТЕКАРСКИЙ ОГОРОД -->
     <section id="screen-farm" class="screen farm-screen" aria-label="Огород">
-      <button class="btn-back" data-back>← На главную</button>
+      <div class="topnav"><button class="btn-back" data-back>← На главную</button></div>
       <div id="farm-root"></div>
     </section>
     <section id="screen-barn" class="screen farm-screen" aria-label="Амбар">
-      <button class="btn-back" data-back>← На главную</button>
+      <div class="topnav"><button class="btn-back" data-back>← На главную</button></div>
       <div id="barn-root"></div>
     </section>
     <section id="screen-shop" class="screen farm-screen" aria-label="Лавка">
-      <button class="btn-back" data-back>← На главную</button>
+      <div class="topnav"><button class="btn-back" data-back>← На главную</button></div>
       <div id="shop-root"></div>
     </section>
     <section id="screen-upgrades" class="screen farm-screen" aria-label="Улучшения">
-      <button class="btn-back" data-back>← На главную</button>
+      <div class="topnav"><button class="btn-back" data-back>← На главную</button></div>
       <div id="upgrades-root"></div>
     </section>
     <section id="screen-guide" class="screen farm-screen" aria-label="Справочник растений">
-      <button class="btn-back" data-back>← На главную</button>
+      <div class="topnav"><button class="btn-back" data-back>← На главную</button></div>
       <div id="guide-root"></div>
     </section>
     <section id="screen-plant" class="screen farm-screen" aria-label="Карточка растения">
-      <button class="btn-back" data-back="prev">← Назад</button>
+      <div class="topnav"><button class="btn-back" data-back="prev">← Назад</button></div>
       <div id="plant-root"></div>
     </section>
 
     <!-- ПРАВДА ИЛИ МИФ: вступление -->
     <section id="screen-quiz-intro" class="screen" aria-labelledby="qi-title">
-      <button class="btn-back" data-back>← На главную</button>
+      <div class="topnav"><button class="btn-back" data-back>← На главную</button></div>
       <div class="card center">
         <span class="pill">Народные средства</span>
         <h2 id="qi-title">Правда или миф?</h2>
@@ -123,7 +123,7 @@
 
     <!-- ПРАВДА ИЛИ МИФ: вопрос -->
     <section id="screen-quiz" class="screen" aria-labelledby="q-text">
-      <div class="topbar">
+      <div class="topbar topnav">
         <button class="btn-back" data-back>← Выйти</button>
         <span class="counter" id="q-counter">Вопрос 1 из 5</span>
       </div>
@@ -145,6 +145,7 @@
 
     <!-- ПРАВДА ИЛИ МИФ: итог -->
     <section id="screen-quiz-result" class="screen" aria-labelledby="qr-title">
+      <div class="topnav"><button class="btn-back" data-back>← На главную</button></div>
       <div class="card center">
         <span class="pill">Итог</span>
         <h2 id="qr-title">Отлично!</h2>
@@ -152,15 +153,15 @@
         <p class="big-result" id="qr-score">4 из 5</p>
         <p id="qr-points">+40 очков</p>
         <p id="qr-streak" class="streak-msg"></p>
-        <button class="btn btn-primary btn-big" id="btn-quiz-again">Ещё 5 вопросов</button>
+        <button class="btn btn-primary btn-big btn-to-farm" data-go="farm">Вернуться в огород</button>
+        <button class="btn btn-ghost btn-big" id="btn-quiz-again">Ещё 5 вопросов</button>
         <button class="btn btn-secondary btn-big" id="btn-share-quiz">Поделиться с друзьями</button>
-        <button class="btn btn-ghost btn-big" data-go="home">На главную</button>
       </div>
     </section>
 
     <!-- ТРАВЯНОЙ СБОР: вступление -->
     <section id="screen-herbs-intro" class="screen" aria-labelledby="hi-title">
-      <button class="btn-back" data-back>← На главную</button>
+      <div class="topnav"><button class="btn-back" data-back>← На главную</button></div>
       <div class="card center">
         <span class="pill">Травы</span>
         <h2 id="hi-title">Собери травяной сбор</h2>
@@ -174,7 +175,7 @@
 
     <!-- ТРАВЯНОЙ СБОР: игра -->
     <section id="screen-herbs" class="screen" aria-labelledby="h-desc">
-      <div class="topbar">
+      <div class="topbar topnav">
         <button class="btn-back" data-back>← Выйти</button>
         <span class="counter" id="h-counter">Сбор №1</span>
       </div>
@@ -203,7 +204,7 @@
 
     <!-- СОВЕТ ДНЯ -->
     <section id="screen-tip" class="screen" aria-labelledby="tip-title">
-      <button class="btn-back" data-back>← На главную</button>
+      <div class="topnav"><button class="btn-back" data-back>← На главную</button></div>
       <div class="card center">
         <span class="pill">Совет дня</span>
         <h2 id="tip-title">…</h2>
@@ -217,7 +218,7 @@
 
     <!-- НАСТРОЙКИ -->
     <section id="screen-settings" class="screen" aria-labelledby="set-title">
-      <button class="btn-back" data-back>← На главную</button>
+      <div class="topnav"><button class="btn-back" data-back>← На главную</button></div>
       <div class="card">
         <h2 id="set-title">Настройки</h2>
         <div class="gold-line left"></div>
@@ -239,7 +240,7 @@
 
     <!-- ОБ ИГРЕ -->
     <section id="screen-about" class="screen" aria-labelledby="about-title">
-      <button class="btn-back" data-back>← На главную</button>
+      <div class="topnav"><button class="btn-back" data-back>← На главную</button></div>
       <div class="card">
         <h2 id="about-title">Об игре</h2>
         <div class="gold-line left"></div>

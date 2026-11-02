@@ -109,7 +109,8 @@
     var h = el.querySelector("h1, h2, .riddle"); if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: true }); }
   }
   function go(name, replace) {
-    if (replace) history.replaceState({ s: name }, ""); else history.pushState({ s: name }, "");
+    var d = (history.state && history.state.d) || 0;
+    if (replace) history.replaceState({ s: name, d: d }, ""); else history.pushState({ s: name, d: name === "home" ? 0 : d + 1 }, "");
     show(name);
   }
   window.addEventListener("popstate", function (e) { show((e.state && e.state.s) || "home"); });
@@ -127,7 +128,9 @@
   });
   function goHome() {
     var from = current;
-    if (history.state && history.state.s && history.state.s !== "home") history.back();
+    // из огорода возвращаемся на главную сразу, сколько бы экранов ни было открыто до этого
+    var d = (history.state && history.state.d) || 0;
+    if (history.state && history.state.s && history.state.s !== "home") { if (d > 1 && document.body.classList.contains("farm-mode")) history.go(-d); else history.back(); }
     // подстраховка: если вернуться по истории не удалось (напр. открыли по прямой ссылке)
     setTimeout(function () { if (current === from && current !== "home") go("home", true); }, 350);
   }
