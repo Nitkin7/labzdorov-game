@@ -162,3 +162,39 @@ body.farm-mode .toast{bottom:calc(100px + env(safe-area-inset-bottom))}
 .recipe{flex-wrap:wrap}
 .recipe .row-text{min-width:150px}
 @media (max-width:420px){.recipe .btn-sm{margin-left:auto;max-width:none;min-width:140px}}
+
+/* ===== v2: реалистичные рисунки растений ===== */
+.pimg{position:relative;display:inline-flex;align-items:flex-end;justify-content:center;flex:none;vertical-align:bottom}
+.pimg img{display:block;width:auto;max-width:100%;object-fit:contain;object-position:bottom center;filter:drop-shadow(0 2px 2px rgba(40,30,10,.18))}
+.pimg .pfb{display:none;position:absolute;inset:0;width:100%;height:100%}
+.pimg.fail img{display:none}
+.pimg.fail .pfb{display:block}
+.pimg.st1 img{filter:saturate(.85) brightness(1.04) drop-shadow(0 2px 2px rgba(40,30,10,.15))}
+.pimg.dried img{filter:sepia(.55) saturate(.75) brightness(.97) drop-shadow(0 2px 2px rgba(40,30,10,.2))}
+.pimg.dried::after{content:"";position:absolute;left:50%;bottom:14%;width:22%;height:7%;transform:translateX(-50%);background:var(--gold);border-radius:3px;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.bed-plant .pimg{max-height:100%}
+.bed-plant .pimg img{max-height:100%}
+.row-item>.pimg{flex:none}
+.row-item.locked>.pimg,.guide-item.locked .pimg{opacity:.55;filter:grayscale(.7)}
+.thumb-bed .pimg{margin:0 -6px}
+.plant-stages .pimg{margin-bottom:8px}
+
+/* ===== v2: портреты покупателей ===== */
+.avatar.has-img{width:66px;height:66px;padding:0;overflow:hidden;background:var(--cream-2)}
+.avatar.has-img img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* ===== v2: верхняя панель всегда видна (и в режиме «на экран Домой») ===== */
+.topnav{position:sticky;top:0;z-index:14;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin:calc(-1 * max(16px, env(safe-area-inset-top))) -16px 6px;
+  padding:calc(env(safe-area-inset-top) + 10px) max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left));
+  background:rgba(246,239,220,.94);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  border-bottom:2px solid rgba(196,154,60,.45);box-shadow:0 4px 12px rgba(31,61,32,.08)}
+.topnav .btn-back{background:#fffdf5;border-width:3px;font-size:1.05rem;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+@media (min-width:700px){.topnav{margin-top:-28px;border-radius:0 0 18px 18px}}
+/* нижнее меню огорода не закрывает содержимое */
+body.farm-mode .app{padding-bottom:calc(110px + env(safe-area-inset-bottom))}
+.btn-to-farm{font-size:1.15rem}
+/* v2: заказ — аватар и текст в ряд, кнопка «Отдать» на всю ширину ниже */
+.order:not(.waiting){flex-wrap:wrap}
+.order:not(.waiting) .row-text{flex:1 1 0;min-width:0}
+.order:not(.waiting) .btn-sm{flex:1 1 100%;max-width:none;align-self:stretch;margin-left:78px;min-height:58px;flex-direction:row;gap:6px}

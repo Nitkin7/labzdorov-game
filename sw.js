@@ -1,5 +1,5 @@
 /* Лаборатория здоровья — сервис-воркер: работа без интернета */
-var CACHE = "lz-game-v4";
+var CACHE = "lz-game-v5";
 var ASSETS = [
   "./",
   "./index.html",
@@ -14,8 +14,20 @@ var ASSETS = [
   "./js/data.js",
   "./js/farm-data.js",
   "./js/farm.js",
-  "./js/platform.js"
+  "./js/platform.js",
+  "./img/people/nina.svg",
+  "./img/people/ivan.svg",
+  "./img/people/valentina.svg",
+  "./img/people/galya.svg",
+  "./img/people/petr.svg",
+  "./img/people/olga.svg",
+  "./img/people/mikhail.svg",
+  "./img/people/anna.svg",
+  "./img/plants/mint.svg",
+  "./img/plants/chamomile.svg",
+  "./img/plants/calendula.svg"
 ];
+// Остальные рисунки растений кэшируются при первом показе (см. «Статика: сначала кэш»).
 
 self.addEventListener("install", function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(ASSETS); }).then(function () { return self.skipWaiting(); }));
