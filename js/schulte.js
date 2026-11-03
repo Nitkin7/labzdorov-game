@@ -68,7 +68,8 @@
       '<div class="card center"><span class="pill">Разминка для ума</span>' +
       '<h2 id="sch-intro-title">Таблица Шульте</h2><div class="gold-line"></div>' +
       '<p class="sch-rules">В таблице перемешаны числа. Нажимайте их по порядку — 1, 2, 3… — как можно быстрее. Подсказка сверху покажет, какое число искать.</p>' +
-      '<p class="sch-rules muted">Ошибиться не страшно: неверное нажатие добавит всего 1 секунду.</p>' +
+      '<p class="sch-rules">Верно найденное число на миг вспыхнет зелёным и снова станет как все — отметок не остаётся.</p>' +
+      '<p class="sch-rules muted">Ошибиться не страшно: неверное нажатие (и повторное — на уже найденное число) добавит всего 1 секунду.</p>' +
       '<h3>Размер таблицы</h3><div class="sch-sizes" role="radiogroup" aria-label="Размер таблицы">' +
       [3, 4, 5].map(function (k) {
         return '<button class="seg-btn sch-size" role="radio" data-sch-size="' + k + '" aria-checked="' + (k === s) + '"><b>' + SIZES[k].n + "</b><span>" + SIZES[k].lv + "</span></button>";
@@ -123,19 +124,24 @@
   function startTimer() { stopTimer(); timer = setInterval(function () { if (L().current() === "schulte") updateHud(); }, 250); }
   function stopTimer() { if (timer) clearInterval(timer); timer = null; }
 
+  /* v10: найденное число лишь коротко вспыхивает зелёным (~0,5 с) и снова выглядит как все остальные —
+     постоянной отметки нет, держать в памяти найденные числа приходится самому.
+     Повторное нажатие на уже найденное число считается ошибкой, как и любое неверное. */
+  var FLASH_MS = 550;
   function tap(btn) {
     if (!G || G.paused || G.done) return;
     var n = +btn.getAttribute("data-sch-n");
-    if (btn.classList.contains("found")) return;
     if (n === G.next) {
-      btn.classList.add("found", "flash"); btn.setAttribute("aria-label", "Число " + n + ", найдено");
-      setTimeout(function () { btn.classList.remove("flash"); }, 450);
+      btn.classList.remove("flash", "wrong"); void btn.offsetWidth; btn.classList.add("flash");
+      clearTimeout(btn._lzFlash);
+      btn._lzFlash = setTimeout(function () { btn.classList.remove("flash"); }, FLASH_MS);
       G.next++; L().tone(true);
       if (G.next > G.cells) { finish(); return; }
     } else {
       G.mis++;
-      btn.classList.remove("wrong"); void btn.offsetWidth; btn.classList.add("wrong");
-      setTimeout(function () { btn.classList.remove("wrong"); }, 450);
+      btn.classList.remove("wrong", "flash"); void btn.offsetWidth; btn.classList.add("wrong");
+      clearTimeout(btn._lzWrong);
+      btn._lzWrong = setTimeout(function () { btn.classList.remove("wrong"); }, 450);
       L().tone(false);
     }
     updateHud();
@@ -218,6 +224,6 @@
   }
 
   if (window.LZBrain) LZBrain.register({ id: ID, n: "Таблица Шульте", screen: "schulte-intro", status: status, title: title, onShow: onShow });
-  window.LZSchulte = { SIZES: SIZES, RANK_T: RANK_T, RANK_CAP: RANK_CAP, PENALTY: PENALTY, scoreOf: scoreOf, rankIdx: rankIdx, title: title,
+  window.LZSchulte = { SIZES: SIZES, FLASH_MS: FLASH_MS, RANK_T: RANK_T, RANK_CAP: RANK_CAP, PENALTY: PENALTY, scoreOf: scoreOf, rankIdx: rankIdx, title: title,
     _game: function () { return G; } };
 })();
