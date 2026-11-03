@@ -1,6 +1,6 @@
 /* Лаборатория здоровья — «Тренировка памяти и внимания».
    Витрина мини-игр (разминка для ума) и общее хранилище результатов.
-   Каждая игра — отдельный файл (js/schulte.js, позже словодел, логические задачи, маджонг),
+   Каждая игра — отдельный файл (js/schulte.js, js/wordgame.js; позже логические задачи, маджонг),
    который регистрирует себя через LZBrain.register({...}).
    Результаты лежат в localStorage под своим ключом lz_brain_v1 и не трогают lz_game_v1 / lz_farm_v1. */
 (function () {
@@ -88,6 +88,20 @@
     if (window.Platform && Platform.leaderboard) Platform.leaderboard.submit(gameId, v, entry.sc);
     return { isBest: isBest, first: !prev, prev: prev, entry: entry, week: week(gameId, v), reward: reward };
   }
+  /* v10: уточнить уже записанный результат (Словодел: раунд можно продолжать после прохождения).
+     Находит запись по времени at, поднимает счёт и при необходимости личный рекорд. Монет не начисляет. */
+  function update(gameId, variant, at, res) {
+    var g = gameData(gameId), v = String(variant), e = null;
+    g.hist.forEach(function (h) { if (h.at === at && h.v === v) e = h; });
+    if (!e) return null;
+    if (res.score > e.sc) e.sc = res.score;
+    if (res.mis != null) e.m = res.mis;
+    var b = g.best[v], isBest = false;
+    if (b && b.at === at) { b.sc = e.sc; b.m = e.m; }
+    else if (!b || e.sc > b.sc) { g.best[v] = { v: v, sc: e.sc, t: e.t, m: e.m, a: e.a, at: e.at }; isBest = true; }
+    save();
+    return { entry: e, isBest: isBest };
+  }
   function best(gameId, variant) { return gameData(gameId).best[String(variant)] || null; }
   function hist(gameId, variant) {
     var v = variant == null ? null : String(variant);
@@ -122,9 +136,19 @@
 
   /* ---------- Витрина ---------- */
   function totalPlays() { var n = 0; for (var k in B.games) n += (B.games[k] && B.games[k].plays) || 0; return n; }
+  /* v10: общее звание — лучшее из званий всех игр; подсказка о следующем — от игры с этим званием */
+  function overallTitle() {
+    var top = null;
+    GAMES.forEach(function (g) {
+      if (g.soon || !g.title) return;
+      var t = g.title(); if (!t) return;
+      if (!top || t.i > top.i || (t.i === top.i && !top.next && t.next)) top = t;
+    });
+    return top;
+  }
   function renderHub() {
     var root = $("brain-root"); if (!root) return;
-    var sch = find("schulte"), title = sch && sch.title ? sch.title() : null, plays = totalPlays();
+    var title = overallTitle(), plays = totalPlays();
     var farmLine = window.LZFarm && LZFarm.brainStatus ? LZFarm.brainStatus() : "";
     root.innerHTML =
       '<div class="card center br-head"><span class="pill">Разминка для ума</span>' +
@@ -145,9 +169,9 @@
   }
   function homeStatus() {
     var el = $("brain-status"); if (!el) return;
-    var sch = find("schulte"), b = null;
-    if (sch && !sch.soon) { var t = sch.title ? sch.title() : null; if (totalPlays()) b = "Звание: «" + (t ? t.name : RANKS[0]) + "» · Таблица Шульте"; }
-    el.textContent = b || "Таблица Шульте и другие разминки для ума";
+    var t = overallTitle(), b = null;
+    if (totalPlays()) b = "Звание: «" + (t ? t.name : RANKS[0]) + "» · Шульте, Словодел";
+    el.textContent = b || "Таблица Шульте, Словодел и другие разминки для ума";
   }
 
   function onShow(name) {
@@ -167,7 +191,7 @@
   });
 
   window.LZBrain = {
-    KEY: KEY, RANKS: RANKS, register: register, record: record, best: best, history: hist, week: week,
+    KEY: KEY, RANKS: RANKS, register: register, record: record, update: update, best: best, title: overallTitle, data: gameData, save: save, history: hist, week: week,
     progressHTML: progressHTML, pref: pref, onShow: onShow, back: back, games: function () { return GAMES; },
     _data: function () { return B; }
   };
