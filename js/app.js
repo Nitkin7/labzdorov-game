@@ -105,6 +105,7 @@
     if (name === "tip") renderTip();
     if (name === "settings") renderSettings();
     if (window.LZFarm) LZFarm.onShow(name);
+    if (window.LZBrain) LZBrain.onShow(name);
     window.scrollTo(0, 0);
     var h = el.querySelector("h1, h2, .riddle"); if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: true }); }
   }

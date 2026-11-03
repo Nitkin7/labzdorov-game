@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="css/images.css">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/farm.css">
+  <link rel="stylesheet" href="css/brain.css">
 </head>
 <body>
   <div class="bg" aria-hidden="true"></div>
@@ -57,6 +58,14 @@
             <span class="pill pill-gold">Главная игра</span>
             <span class="menu-title">Аптекарский огород</span>
             <span class="menu-desc" id="farm-status">Выращивайте травы, сушите, собирайте чаи</span>
+          </span>
+        </button>
+        <button class="menu-card brain-card" data-go="brain">
+          <span class="menu-img brain-thumb" aria-hidden="true"><svg viewBox="0 0 118 80"><rect width="118" height="80" fill="#fbf6e9"/><g transform="translate(29 10)"><rect width="60" height="60" rx="8" fill="#fffdf6" stroke="#c49a3c" stroke-width="3"/><path d="M20 2v56M40 2v56M2 20h56M2 40h56" stroke="#c49a3c" stroke-width="2"/><rect x="21.5" y="21.5" width="17" height="17" rx="3" fill="#e1f0d8"/><g font-family="Lora,Georgia,serif" font-weight="700" font-size="13" text-anchor="middle" fill="#1f3d20"><text x="10" y="15">7</text><text x="30" y="15">2</text><text x="50" y="15">9</text><text x="10" y="35">4</text><text x="30" y="35" fill="#2e6b2e">1</text><text x="50" y="35">6</text><text x="10" y="55">8</text><text x="30" y="55">3</text><text x="50" y="55">5</text></g></g></svg></span>
+          <span class="menu-text">
+            <span class="pill pill-gold">Новое</span>
+            <span class="menu-title">Тренировка памяти и внимания</span>
+            <span class="menu-desc" id="brain-status">Таблица Шульте и другие разминки для ума</span>
           </span>
         </button>
         <button class="menu-card" data-go="quiz-intro">
@@ -227,6 +236,24 @@
       </div>
     </section>
 
+    <!-- ТРЕНИРОВКА ПАМЯТИ И ВНИМАНИЯ: витрина мини-игр (js/brain.js) -->
+    <section id="screen-brain" class="screen" aria-labelledby="brain-title">
+      <div class="topnav"><button class="btn-back" data-brain-back="home">← Назад</button></div>
+      <div id="brain-root"></div>
+    </section>
+
+    <!-- ТАБЛИЦА ШУЛЬТЕ (js/schulte.js) -->
+    <section id="screen-schulte-intro" class="screen" aria-labelledby="sch-intro-title">
+      <div class="topnav"><button class="btn-back" data-brain-back="brain">← Ко всем играм</button></div>
+      <div id="schulte-intro-root"></div>
+    </section>
+    <section id="screen-schulte" class="screen sch-screen" aria-label="Таблица Шульте">
+      <div id="schulte-root"></div>
+    </section>
+    <section id="screen-schulte-result" class="screen" aria-labelledby="sch-res-title">
+      <div id="schulte-result-root"></div>
+    </section>
+
     <!-- СОВЕТ ДНЯ -->
     <section id="screen-tip" class="screen" aria-labelledby="tip-title">
       <div class="topnav"><button class="btn-back" data-back>← На главную</button></div>
@@ -274,7 +301,7 @@
         <h2 id="about-title">Об игре</h2>
         <div class="gold-line left"></div>
         <p>«Лаборатория здоровья» — спокойная игра о здоровье, травах и народных средствах. Каждый день — новые вопросы и совет дня.</p>
-        <p>Здесь нет таймеров и штрафов. Ваши очки и серия дней сохраняются на этом устройстве.</p>
+        <p>Здесь нет штрафов, а таймер есть только в разминке «Таблица Шульте» — играйте в своём темпе. Ваши очки и серия дней сохраняются на этом устройстве.</p>
         <p class="doctor-note">Игра носит познавательный характер и не заменяет консультацию врача. Не используйте её для самолечения. Перед применением посоветуйтесь с врачом. При резком ухудшении самочувствия звоните 103 или 112.</p>
         <div class="row-buttons col">
           <a class="btn btn-secondary btn-big" href="https://ok.ru/labzdorov" target="_blank" rel="noopener">Мы в Одноклассниках</a>
@@ -308,6 +335,8 @@
   <script src="js/farm-data.js"></script>
   <script src="js/farm-data2.js"></script>
   <script src="js/farm.js"></script>
+  <script src="js/brain.js"></script>
+  <script src="js/schulte.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
