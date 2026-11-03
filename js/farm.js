@@ -31,9 +31,11 @@
       harvested: 0, sold: 0, teas: 0, ordersDone: 0, started: Date.now(),
       /* v4 */
       v: 4, news: false, areas: {}, orchard: [], hives: [], forest: {}, seen: {}, sets: {}, ach: {}, deco: {}, stars: 0,
-      st: freshStats(), daily: null, contract: null, fair: null, convoy: null, evo: null };
+      st: freshStats(), daily: null, contract: null, fair: null, convoy: null, evo: null,
+      /* v6 */
+      dog: null, visitor: null, visNext: 0, lastSeen: 0, nib: null };
   }
-  function freshStats() { return { orchard: 0, honey: 0, forest: 0, jams: 0, contracts: 0, fairs: 0, convoys: 0, events: 0, chests: 0, weekChests: 0, dried: 0 }; }
+  function freshStats() { return { orchard: 0, honey: 0, forest: 0, jams: 0, contracts: 0, fairs: 0, convoys: 0, events: 0, chests: 0, weekChests: 0, dried: 0, guests: 0, dogCare: 0 }; }
   /* Перенос сохранений v1–v3: ничего не удаляем, только добавляем новое */
   function migrate(raw) {
     var st = freshStats(); for (var s in st) if (!(s in raw.st)) raw.st[s] = st[s];
@@ -347,9 +349,10 @@
   }
   function harvest(i) {
     var b = F.beds[i]; if (!b || bedState(b).st !== "ready") return;
-    var p = P[b.p], q = 2;
+    var p = P[b.p], q = b.bit ? 1 : 2;
     add("f:" + p.id, q); F.beds[i] = null; F.harvested++; track("harvest");
-    var msg = "Собрано: " + p.n.toLowerCase() + " × " + q + " пучка — в амбаре. +" + p.xp + " опыта";
+    var msg = "Собрано: " + p.n.toLowerCase() + " × " + q + (q === 1 ? " пучок" : " пучка") + " — в амбаре. +" + p.xp + " опыта";
+    if (F.visitor && F.visitor.bed === i) { var gv = GU[F.visitor.t]; F.visitor = null; if (gv) msg += ". " + gv.n + " убежал" + (gv.f ? "а" : "") + " в лес"; }
     if (F.tut <= 2) F.tut = 3;
     gainXp(p.xp, msg);
     save(); L().tone(true); renderFarm();
@@ -365,6 +368,7 @@
       var more = FD.areas.filter(inLv).map(function (a) { return "угодье «" + a.n + "»"; })
         .concat(FD.trees.filter(inLv).map(function (t) { return t.n.toLowerCase(); }), FD.forest.filter(inLv).map(function (w) { return w.n.toLowerCase(); }),
           FD.upgrades.filter(inLv).map(function (u) { return "«" + u.n + "»"; }));
+      if (before < DOG.lvl && after >= DOG.lvl) more.push("будка с собакой-сторожем");
       save();
       setTimeout(function () {
         openSheet("Новый уровень!", '<div class="center">' + icon("bed", 90) + '<p class="big-line">Уровень ' + after + ": «" + levelName(after) + "»</p>" +
@@ -653,33 +657,453 @@
     return '<button class="' + cls + '" data-bed="' + i + '" data-sig="' + sig(i) + '" aria-label="Грядка ' + (i + 1) + ": " + label + '">' + inner + "</button>";
   }
   function firstIdx(kind) { for (var i = 0; i < F.beds.length; i++) if (bedState(F.beds[i]).st === kind) return i; return -1; }
-  function sig(i) { var b = F.beds[i], st = bedState(b); return st.st + (st.stage || 0) + (b && b.water ? "w" : "") + F.tut; }
+  function sig(i) { var b = F.beds[i], st = bedState(b); return st.st + (st.stage || 0) + (b && b.water ? "w" : "") + (b && b.bit ? "b" : "") + F.tut; }
+
+  /* ======================= v5: нарисованная усадьба ======================= */
+  var SC = "img/scene/", SC_SHORT = { pond: "Пруд", greenhouse: "Теплица", birdhouse: "Скворечник", bench: "Скамейка", gazebo: "Беседка" };
+  function scImg(n, cls) { return '<img class="sc-img' + (cls ? " " + cls : "") + '" src="' + SC + n + '.svg" alt="" decoding="async" draggable="false">'; }
+  function scBox(x, y, w, h, H) { return 'style="left:' + (x / 10) + "%;top:" + (y / H * 100).toFixed(3) + "%;width:" + (w / 10) + "%;height:" + (h / H * 100).toFixed(3) + '%"'; }
+  function scObj(o) {
+    return '<button class="sc-obj' + (o.cls ? " " + o.cls : "") + '" ' + o.attrs + " " + scBox(o.x, o.y, o.w, o.h, o.H) + ' aria-label="' + o.aria + '">' +
+      (o.glow ? '<span class="sc-glow" aria-hidden="true"></span>' : "") + (o.img ? scImg(o.img) : "") + (o.inner || "") +
+      (o.label ? '<span class="sc-label">' + o.label + "</span>" : "") + (o.badge ? '<span class="sc-badge">' + o.badge + "</span>" : "") + "</button>";
+  }
+  function scLock(a) {
+    var can = level() >= a.lvl;
+    return '<span class="sc-lock' + (can ? " can" : "") + '"><span class="sc-lock-ic" aria-hidden="true">' + (can ? "🔓" : "🔒") + "</span><b>" + a.n + "</b><small>" +
+      (can ? "Открыть за " + coin(a.price) : "Уровень " + a.lvl + " · " + coin(a.price)) + "</small></span>";
+  }
+  function sceneBedHTML(i, x, y, w, h, GH) {
+    var b = F.beds[i], st = bedState(b), tut = tutorialText(), cls = "bed sc-bed", inner = "", label;
+    if (st.st === "empty") {
+      cls += " empty"; if (tut && tut.target === "bed-empty" && firstIdx("empty") === i) cls += " pulse";
+      inner = scImg("bed", "sc-soil") + '<span class="sc-plus" aria-hidden="true">+</span><span class="bed-label">Посадить</span>';
+      label = "Пустая грядка — посадить";
+    } else {
+      var p = P[b.p];
+      if (st.st === "ready") {
+        cls += " ready"; if (tut && tut.target === "bed-ready") cls += " pulse";
+        inner = '<span class="sc-glow" aria-hidden="true"></span>' + scImg("bed", "sc-soil") + '<span class="bed-plant">' + plantImg(p, st.stage, 120) + "</span>" +
+          '<span class="bed-name">' + p.n + '</span><span class="bed-label harvest">Собрать!</span>' + (b.bit ? '<span class="sc-bit" title="Здесь побывал лесной гость">🐾</span>' : "");
+        label = p.n + " — урожай готов, собрать" + (b.bit ? " (лесной гость полакомился: на пучок меньше)" : "");
+      } else {
+        cls += " grow" + (b.water ? " watered" : ""); if (tut && tut.target === "bed-grow" && !b.water) cls += " pulse";
+        inner = scImg("bed", "sc-soil") + '<span class="bed-plant">' + plantImg(p, st.stage, 120) + "</span>" +
+          '<span class="bed-name">' + p.n + '</span><span class="bed-label"><span data-timer="bed" data-i="' + i + '">' + fmtTime(st.left) + "</span></span>" +
+          '<span class="bed-bar"><span style="width:' + st.pct.toFixed(0) + '%"></span></span>' + (b.water ? "" : '<span class="water-chip" title="Полить"><span class="drop" aria-hidden="true"></span></span>');
+        label = p.n + " растёт, ещё " + fmtTime(st.left) + (b.water ? "" : ", можно полить");
+      }
+    }
+    return '<button class="' + cls + '" data-bed="' + i + '" data-sig="' + sig(i) + '" aria-label="Грядка ' + (i + 1) + ": " + label + '" ' + scBox(x, y, w, h, GH) + ">" + inner + "</button>";
+  }
+  function fenceRow(y, H, owned, ghostTag, x0, W) {
+    var out = "", n = 2, pw = W / n;
+    for (var k = 0; k < n; k++) out += '<div class="sc-fence' + (owned ? "" : " ghost") + '" aria-hidden="true" ' + scBox(x0 + k * pw, y, pw + 1, 98, H) + ">" + scImg("fence") + "</div>";
+    if (!owned && ghostTag) {
+      var u = U.fence, lv = level();
+      out += '<button class="sc-tag" data-tab="upgrades" ' + scBox(x0 + W - 290, y + 10, 280, 80, H) + ' aria-label="Плетёный забор — в Улучшениях">+ Забор <small>' + (lv >= u.lvl ? coin(u.price) : "с ур. " + u.lvl) + "</small></button>";
+    }
+    return out;
+  }
+  function sceneHTML() {
+    var s = season(), lv = level(), out = [], tut = tutorialText();
+    var bp = bedPrice(), nCells = F.beds.length + (bp !== null ? 1 : 0);
+    /* v6: грядки — в центре, постройки — по кругу */
+    var cols = 2, GX = 212, GW = 576, cellW = GW / cols, bedW = cellW - 18, rowH = 290;
+    var rows = Math.max(1, Math.ceil(nCells / cols)), GHi = rows * rowH;
+    var T0 = 400, G = T0 + 380, GH = 100 + GHi + 96, B = G + GH + 40, BH = 330;
+    var oOwn = F.areas.orchard, aOwn = F.areas.apiary;
+    function decoVis(id) { return !!(U[id] && (F.up[id] || lv >= U[id].lvl)); }
+    var wide = ["greenhouse", "gazebo", "pond"].filter(decoVis);
+    var R = B + BH + 50, RH = 340;
+    var decos = Object.keys(F.deco).map(function (id) { var d = null; FD.events.concat(FD.sets).forEach(function (x) { if (x.deco.id === id) d = x.deco; }); return d; }).filter(Boolean);
+    var nSmall = ["birdhouse", "bench", "beehive"].filter(decoVis).length, R2 = wide.length ? R + RH : R, RH2 = 290;
+    var rc = (nSmall ? R2 + RH2 : R2) + 20;
+    var H = rc + (decos.length ? 230 : 20);
+    var BGH = 1778;
+
+    /* фон и тропинка-кольцо */
+    out.push('<div class="sc-bg" ' + scBox(0, 0, 1000, BGH, H) + '></div><div class="sc-tile" style="top:' + ((BGH - 140) / H * 100).toFixed(3) + '%"></div>');
+    var py = T0 + 250, ph = B + 175 - py;
+    out.push('<svg class="sc-path" aria-hidden="true" viewBox="0 0 1000 ' + H + '" preserveAspectRatio="none" focusable="false">' +
+      '<path d="M500 ' + (T0 - 40) + 'V' + py + '" class="p1"/><rect x="107" y="' + py + '" width="786" height="' + ph + '" rx="120" class="p1"/>' +
+      (wide.length || decos.length ? '<path d="M500 ' + (py + ph) + 'V' + (R + 120) + '" class="p1"/>' : "") +
+      '<rect x="107" y="' + py + '" width="786" height="' + ph + '" rx="120" class="p2"/></svg>');
+
+    /* Лес — откуда приходят лесные гости */
+    var fOwn = F.areas.forest, fReady = 0, fNext = 0;
+    if (fOwn) FD.forest.forEach(function (w) { if (w.lvl > lv) return; var l = spotLeft(w.id); if (!l) fReady++; else if (!fNext || l < fNext) fNext = l; });
+    out.push('<button class="sc-zone sc-forest' + (fOwn ? "" : " locked") + (fReady ? " ready" : "") + '" data-tab="forest" ' + scBox(0, 0, 1000, 380, H) +
+      ' aria-label="Лес' + (fOwn ? (fReady ? ": можно собрать " + fReady : "") : ": закрыт, " + (lv >= AR.forest.lvl ? "можно открыть за " + AR.forest.price + " монет" : "откроется на уровне " + AR.forest.lvl)) + '">' +
+      (fOwn ? '<span class="sc-sign">🌲 Лес</span>' + (fReady ? '<span class="sc-badge">Можно собрать: ' + fReady + "</span>" : fNext ? '<span class="sc-label sm">Снова через <span data-end="' + (now() + fNext) + '">' + fmtTime(fNext) + "</span></span>" : "") : scLock(AR.forest)) + "</button>");
+
+    /* Верх кольца: дом, амбар, лавка */
+    var racksDone = 0, rackNext = 0; ensureRacks();
+    F.racks.forEach(function (r) { r.forEach(function (x) { var st = slotState(x); if (st === "done") racksDone++; else if (st === "dry" && (!rackNext || x.end < rackNext)) rackNext = x.end; }); });
+    var rOrders = F.orders.filter(function (o) { return o && !o.next && have(o.key) >= o.q; }).length;
+    var nextCust = 0; F.orders.forEach(function (o) { if (o && o.next && (!nextCust || o.next < nextCust)) nextCust = o.next; });
+    var tb = T0 + 345;
+    out.push(scObj({ x: 10, y: tb - 330, w: 290, h: 330, H: H, img: "house", label: "Улучшения", attrs: 'data-tab="upgrades"', aria: "Дом — улучшения", cls: "sc-house" }));
+    out.push(scObj({ x: 315, y: tb - 310, w: 370, h: 310, H: H, img: "barn", label: "Амбар", attrs: 'data-tab="barn"', aria: "Амбар — запасы, сушилка и рецепты" + (racksDone ? ", сушка готова" : ""),
+      cls: "sc-barn" + (tut && tut.target === "tab-barn" ? " pulse" : "") }));
+    out.push(scObj({ x: 700, y: tb - 320, w: 290, h: 320, H: H, img: "shop", label: "Лавка", attrs: 'data-tab="shop"', aria: "Лавка — заказы и продажа" + (rOrders ? ", готовых заказов: " + rOrders : ""),
+      badge: rOrders ? "Заказы: " + rOrders : "", glow: !!rOrders, cls: "sc-shop" + (rOrders ? " ready" : "") + (tut && tut.target === "tab-shop" ? " pulse" : ""), inner: nextCust ? '<span hidden data-end="' + nextCust + '"></span>' : "" }));
+
+    /* Центр: Аптекарский огород */
+    out.push('<div class="sc-garden" aria-hidden="true" ' + scBox(GX, G + 50, GW, GH - 100, H) + "></div>");
+    out.push(fenceRow(G, H, F.up.fence, false, GX, GW));
+    out.push('<div class="sc-sign sc-gsign" ' + scBox(GX + 25, G + 8, GW - 50, 78, H) + ">Аптекарский огород</div>");
+    var beds = "", V = F.visitor;
+    F.beds.forEach(function (_, i) {
+      var r = Math.floor(i / cols), c = i % cols, bx = GX + c * cellW + 10, by = r * rowH + 8;
+      beds += sceneBedHTML(i, bx, by, bedW, rowH - 16, GHi);
+      if (V && V.bed === i && GU[V.t]) {
+        var g = GU[V.t], gw = Math.min(150, bedW * 0.5), gh = gw * g.ar;
+        beds += '<button class="sc-guest g-' + V.t + (F.dog && !V.awake ? " calm" : "") + '" data-shoo aria-label="' + g.n + " у грядки — прогнать" + '" ' + scBox(bx + bedW - gw * 0.8, Math.max(0, by + (rowH - 16) * 0.55 - gh), gw, gh, GHi) + ">" +
+          scImg(V.t) + '<span class="sc-say" aria-hidden="true">Кыш!</span></button>';
+      }
+    });
+    if (bp !== null) {
+      var bi = F.beds.length, br = Math.floor(bi / cols), bc = bi % cols;
+      beds += '<button class="bed buy sc-bed" data-buybed aria-label="Купить новую грядку за ' + bp + ' монет" ' + scBox(GX + bc * cellW + 22, br * rowH + 14, bedW - 24, rowH - 30, GHi) + '><span class="sc-plus" aria-hidden="true">+</span><span class="bed-label">Новая грядка</span><span class="bed-price">' + coin(bp) + "</span></button>";
+    }
+    out.push('<div class="beds sc-beds" id="beds" ' + scBox(0, G + 100, 1000, GHi, H) + ">" + beds + "</div>");
+    out.push(fenceRow(G + GH - 98, H, F.up.fence, true, GX, GW));
+
+    /* Бока кольца: сушилка, рецепты (слева), цели, Травник (справа) и малые украшения */
+    var canCook = FD.recipes.some(function (r) { return recipeOpen(r) && canMake(r); });
+    var setReady = FD.sets.some(function (x) { return !F.sets[x.id] && setProgress(x) >= x.items.length; });
+    var sideN = Math.max(2, Math.floor(GH / 270)), SY = G + 30, slotH = (GH - 20) / sideN;
+    var left = [function (x, yb, w, h) { return scObj({ x: x, y: yb - h, w: w, h: h, H: H, img: "rack", label: "Сушилка", attrs: 'data-tab="barn" data-anchor="racks"', aria: "Сушилка трав" + (racksDone ? " — сушка готова, снять: " + racksDone : ""),
+        badge: racksDone ? "Снять × " + racksDone : "", glow: !!racksDone, cls: "sc-rack" + (racksDone ? " ready" : ""), inner: rackNext ? '<span hidden data-end="' + rackNext + '"></span>' : "" }); },
+      function (x, yb, w, h) { return scObj({ x: x, y: yb - h, w: w, h: h, H: H, img: "table", label: "Рецепты", attrs: 'data-tab="barn" data-anchor="recipes"', aria: "Стол рецептов" + (canCook ? " — можно приготовить" : ""), badge: canCook ? "Варить!" : "", glow: canCook, cls: "sc-table" }); }];
+    var right = [function (x, yb, w, h) { return scObj({ x: x + 12, y: yb - h, w: w - 24, h: h, H: H, img: "board", label: "Цели", attrs: "data-goals", aria: "Доска — ближайшие цели", cls: "sc-board" }); },
+      function (x, yb, w, h) { return scObj({ x: x, y: yb - h, w: w, h: h, H: H, img: "book", label: "Травник", attrs: 'data-tab="collection"', aria: "Травник — альбом и наборы" + (setReady ? ", набор собран" : ""), badge: setReady ? "Бонус!" : "", glow: setReady, cls: "sc-book" }); }];
+    function deco(id, x, yb, w, h) {
+      var u = U[id]; if (!u) return "";
+      if (F.up[id]) return scObj({ x: x, y: yb - h, w: w, h: h, H: H, img: id === "beehive" ? "hive" : id, attrs: 'data-decor="' + id + '"', aria: u.n, label: SC_SHORT[id] || u.n, cls: "sc-deco" });
+      if (lv < u.lvl) return "";
+      return scObj({ x: x, y: yb - h, w: w, h: h, H: H, img: id === "beehive" ? "hive" : id, attrs: 'data-tab="upgrades"', aria: u.n + " — можно купить в Улучшениях за " + u.price + " монет", cls: "sc-deco ghost", label: "+ " + (SC_SHORT[id] || u.n) + "<br>" + coin(u.price) });
+    }
+    var small = [];
+    if (decoVis("birdhouse")) small.push(function (x, yb, w, h) { return deco("birdhouse", x + w / 2 - 80, yb, 160, Math.min(h, 270)); });
+    if (decoVis("bench")) small.push(function (x, yb, w, h) { return deco("bench", x, yb, w, Math.min(h, 170)); });
+    if (F.up.beehive) small.push(function (x, yb, w, h) {
+      var hn = honeyReady();
+      return scObj({ x: x + 10, y: yb - 190, w: w - 20, h: 190, H: H, img: "hive", attrs: hn ? "data-honey" : 'data-decor="beehive"', aria: "Улей во дворе" + (hn ? ": мёд готов × " + hn + " — собрать" : ""), cls: "sc-deco sc-yhive" + (hn ? " ready" : ""), glow: !!hn,
+        badge: hn ? "Мёд × " + hn : "", label: hn ? "" : '<span data-timer="hive">' + fmtTime(HONEY_EVERY - ((now() - F.hiveAt) % HONEY_EVERY)) + "</span>" });
+    });
+    else if (decoVis("beehive")) small.push(function (x, yb, w, h) { return deco("beehive", x + 10, yb, w - 20, 190); });
+    /* малые украшения — во дворе за кольцом, чтобы бока не теснили грядки */
+    var smX = small.length === 1 ? [350] : small.length === 2 ? [150, 550] : [20, 350, 680];
+    small.forEach(function (f, k) { out.push(f(smX[k], R2 + RH2 - 30, 300, 250)); });
+    [left, right].forEach(function (list, side) {
+      var x = side ? 796 : 8;
+      for (var k = 0; k < sideN; k++) {
+        var yb = SY + (k + 1) * slotH - 46, h = Math.min(250, slotH - 70);
+        if (list[k]) out.push(list[k](x, yb, 196, h).replace('class="sc-obj', 'class="sc-obj ' + (side ? "sc-r" : "sc-l")));
+        else if (k === sideN - 1 || (k + side) % 2) out.push('<div class="sc-dtree" aria-hidden="true" ' + scBox(x, yb - Math.min(250, slotH - 30) + 20, 196, Math.min(250, slotH - 30), H) + ">" + scImg("tree-" + s.id) + "</div>");
+      }
+    });
+
+    /* Низ кольца: сад, будка с собакой, пасека */
+    function lockedZone(id, x, y, w, h, ghosts) {
+      var a = AR[id];
+      return '<button class="sc-zone locked sc-' + id + '" data-tab="' + id + '" ' + scBox(x, y, w, h, H) + ' aria-label="' + a.n + ": закрыто, " + (lv >= a.lvl ? "можно открыть за " + a.price + " монет" : "откроется на уровне " + a.lvl) + '">' + ghosts + scLock(a) + "</button>";
+    }
+    var treeGh = '<span class="sc-ghost" style="left:2%;top:4%;width:54%;height:80%">' + scImg("tree-" + s.id) + '</span><span class="sc-ghost" style="left:44%;top:12%;width:54%;height:74%">' + scImg("tree-" + s.id) + "</span>";
+    var hiveGh = '<span class="sc-ghost" style="left:6%;top:30%;width:42%;height:46%">' + scImg("hive") + '</span><span class="sc-ghost" style="left:52%;top:36%;width:42%;height:46%">' + scImg("hive") + "</span>";
+    if (!oOwn) out.push(lockedZone("orchard", 10, B, 320, BH, treeGh));
+    else {
+      var oReady = 0, oNext = 0, pics = [];
+      F.orchard.forEach(function (slot) {
+        if (!slot) return; var st = treeState(slot), t = T[slot.t]; if (!t) return;
+        if (st.st === "ready") oReady++; else if (!oNext || slot.next < oNext) oNext = slot.next;
+        if (pics.length < 3) pics.push(t.id === "apple" && st.stage >= 2 ? scImg("tree-" + s.id) : plantImg(t, st.stage, 150));
+      });
+      var pos = pics.length === 1 ? [[20, 4, 60, 82]] : pics.length === 2 ? [[2, 6, 54, 80], [44, 14, 54, 74]] : [[0, 10, 46, 70], [54, 10, 46, 70], [26, 0, 48, 82]];
+      var inner = pics.length ? pics.map(function (p, k) { var q = pos[k]; return '<span class="sc-pic sc-tpic" style="left:' + q[0] + "%;top:" + q[1] + "%;width:" + q[2] + "%;height:" + q[3] + '%">' + p + "</span>"; }).join("") :
+        '<span class="sc-plus" aria-hidden="true">+</span>';
+      out.push(scObj({ x: 10, y: B, w: 320, h: BH, H: H, attrs: 'data-tab="orchard"', aria: "Сад" + (oReady ? ": урожай готов на " + oReady + " " + L().plural(oReady, "дереве", "деревьях", "деревьях") : pics.length ? "" : ": посадите первое дерево"),
+        cls: "sc-ring-tile sc-orchard-t" + (oReady ? " ready" : ""), glow: !!oReady, inner: inner + (oNext && !oReady ? '<span hidden data-end="' + oNext + '"></span>' : ""), label: "Сад ›" }));
+      if (oReady) out.push('<button class="sc-collect" data-oall ' + scBox(20, B - 10, 300, 74, H) + ' aria-label="Собрать урожай в саду">Собрать × ' + oReady + "</button>");
+    }
+    out.push(kennelHTML(345, B, 310, BH, H));
+    if (!aOwn) out.push(lockedZone("apiary", 670, B, 320, BH, hiveGh));
+    else {
+      var aReady = 0, every = hiveEvery(), aNext = 0;
+      F.hives.forEach(function (h) { var n = hiveReady(h); aReady += n; if (!n && (!aNext || h.at + every < aNext)) aNext = h.at + every; });
+      var hn2 = Math.min(3, Math.max(1, F.hives.length));
+      var hpos = hn2 === 1 ? [[25, 22, 50, 62]] : hn2 === 2 ? [[4, 26, 46, 58], [50, 30, 46, 58]] : [[0, 30, 38, 52], [62, 30, 38, 52], [30, 18, 40, 56]];
+      var hin = hpos.map(function (q) { return '<span class="sc-pic" style="position:absolute;left:' + q[0] + "%;top:" + q[1] + "%;width:" + q[2] + "%;height:" + q[3] + '%">' + scImg("hive") + "</span>"; }).join("");
+      out.push(scObj({ x: 670, y: B, w: 320, h: BH, H: H, attrs: 'data-tab="apiary"', aria: "Пасека" + (aReady ? ": мёд готов, баночек " + aReady : ""), cls: "sc-ring-tile sc-apiary-t" + (aReady ? " ready" : ""), glow: !!aReady,
+        inner: hin + (aNext && !aReady ? '<span hidden data-end="' + aNext + '"></span>' : ""), label: "Пасека ›" }));
+      if (aReady) out.push('<button class="sc-collect" data-aall ' + scBox(680, B - 10, 300, 74, H) + ' aria-label="Собрать мёд на пасеке">Мёд × ' + aReady + "</button>");
+    }
+
+    /* Большие украшения — за кольцом */
+    if (wide.length) {
+      var wx = { greenhouse: [10, 320, 286], gazebo: [345, 280, 330], pond: [640, 350, 210] };
+      wide.forEach(function (id) { out.push(deco(id, wx[id][0], R + RH - 20, wx[id][1], wx[id][2])); });
+    }
+    if (decos.length) out.push('<div class="sc-hol" ' + scBox(20, rc, 960, 200, H) + ">" + decos.map(function (d) {
+      return '<button class="sc-holi" data-holdeco="' + d.id + '" aria-label="Украшение: ' + d.n + '"><span aria-hidden="true">' + d.ic + "</span></button>"; }).join("") + "</div>");
+
+    /* сезонные частицы */
+    var fx = s.id === "winter" ? "❄" : s.id === "autumn" ? "🍂" : s.id === "spring" ? "🌸" : "🦋";
+    var parts = "", nP = s.id === "summer" ? 4 : 10;
+    for (var k = 0; k < nP; k++) parts += '<span style="left:' + (5 + k * (s.id === "summer" ? 22 : 9.5)) + "%;" + (s.id === "summer" ? "top:" + (22 + k * 19) + "%;" : "") + "animation-delay:" + (-k * 1.7) + "s;animation-duration:" + (11 + (k % 4) * 2.5) + 's">' + fx + "</span>";
+    out.push('<div class="sc-fx" aria-hidden="true">' + parts + "</div>");
+
+    return '<div class="scene sc-' + s.id + '" id="scene" style="padding-top:' + (H / 10).toFixed(2) + '%" role="group" aria-label="Усадьба: в центре огород, вокруг постройки — нажмите на постройку или грядку"><div class="sc-in">' + out.join("") + "</div></div>";
+  }
+
+  /* ======================= v6: будка с собакой и лесные гости ======================= */
+  var DOG = { lvl: 6, price: 220, names: ["Шарик", "Дружок", "Жучка"],
+    up: [{ id: "collar", n: "Ошейник с колокольчиком", lvl: 7, price: 250, ic: "🔔", d: "Пёс быстрее замечает гостей и реже дремлет на посту." },
+      { id: "house2", n: "Тёплая бревенчатая будка", lvl: 9, price: 500, ic: "🏠", d: "Выспавшийся пёс всегда на посту, а за каждого прогнанного гостя — вдвое больше монет." }] };
+  var GU = {
+    hare: { n: "Заяц", acc: "зайца", ar: 244 / 150, lvl: 6, fact: "Зайцы обожают капусту и морковную ботву, а зимой грызут кору молодых яблонь. Поэтому садоводы на зиму обматывают стволы мешковиной." },
+    hedgehog: { n: "Ёж", acc: "ежа", ar: 141 / 150, lvl: 6, noWinter: true, fact: "Ёж — друг огородника: за ночь он съедает множество слизней и гусениц. Его можно мягко проводить за калитку — пусть охотится на вредителей." },
+    crow: { n: "Ворона", acc: "ворону", f: true, ar: 177 / 140, lvl: 6, fact: "Серая ворона очень умна: она запоминает лица людей на годы и учит этому птенцов. Блестящие ленты на грядке её отпугивают." },
+    fox: { n: "Лиса", acc: "лису", f: true, ar: 189 / 170, lvl: 7, fact: "Лиса охотится на мышей «на слух»: слышит писк под снегом и ныряет в сугроб. Мышей в огороде после неё заметно меньше." },
+    boar: { n: "Кабан", acc: "кабана", ar: 142 / 190, lvl: 8, fact: "Кабаны роют землю в поисках корешков и личинок — за ночь могут перекопать целую поляну. Крепкий забор и собака их надёжно отпугивают." }
+  };
+  var GU_IDS = ["hare", "hedgehog", "crow", "fox", "boar"];
+  var CHASE_COINS = 3, SHOO_COINS = 5, AWAY = 30 * MIN;
+  /* отметка «игрок был здесь» — только это поле, чтобы не затирать сохранение */
+  function markSeen() {
+    F.lastSeen = now();
+    try { var raw = JSON.parse(localStorage.getItem(KEY) || "null"); if (raw) { raw.lastSeen = F.lastSeen; localStorage.setItem(KEY, JSON.stringify(raw)); } } catch (e) {}
+  }
+  function rnd() { return typeof window.LZ_RAND === "number" ? window.LZ_RAND : Math.random(); }
+  function dogDay(k) { return !!(F.dog && F.dog[k] === L().dayKey()); }
+  function dogChance() { if (!F.dog) return 0; if (F.dog.house2 || dogDay("fed")) return 1; return F.dog.collar ? 0.9 : 0.75; }
+  function dogDelay() { return (F.dog && F.dog.collar ? 3 : 7) * 1000; }
+  function reducedMotion() { return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); }
+  function dogName() { return F.dog ? F.dog.name || "Шарик" : "Шарик"; }
+  function kennelHTML(x, y, w, h, H) {
+    var lv = level(), D = F.dog;
+    if (!D) {
+      var can = lv >= DOG.lvl;
+      if (can) return '<button class="sc-obj sc-kennel buy" id="sc-kennel" data-dog ' + scBox(x, y, w, h, H) + ' aria-label="Будка с собакой: можно завести собаку за ' + DOG.price + ' монет">' +
+        '<span class="sc-kpic">' + scImg("kennel", "faded") + '</span><span class="sc-label">🐕 ' + coin(DOG.price) + '</span></button>';
+      return '<button class="sc-obj sc-kennel locked" id="sc-kennel" data-dog ' + scBox(x, y, w, h, H) + ' aria-label="Будка с собакой: ' + (can ? "можно завести собаку за " + DOG.price + " монет" : "откроется на уровне " + DOG.lvl) + '">' +
+        '<span class="sc-kpic">' + scImg("kennel", "ghosted") + "</span>" +
+        '<span class="sc-lock' + (can ? " can" : "") + '"><span class="sc-lock-ic" aria-hidden="true">' + (can ? "🐕" : "🔒") + "</span><b>Будка с собакой</b><small>" + (can ? "Завести за " + coin(DOG.price) : "Уровень " + DOG.lvl + " · " + coin(DOG.price)) + "</small></span></button>";
+    }
+    var nap = F.visitor && !F.visitor.awake, lonely = !dogDay("pet");
+    return '<button class="sc-obj sc-kennel' + (nap ? " nap" : "") + '" id="sc-kennel" data-dog ' + scBox(x, y, w, h, H) + ' aria-label="Будка, ' + esc(dogName()) + (nap ? " задремал — нажмите, чтобы разбудить" : lonely ? " — погладить и покормить" : " сторожит огород") + '">' +
+      '<span class="sc-kpic">' + scImg(D.house2 ? "kennel2" : "kennel") + "</span>" +
+      '<span class="sc-dog" id="sc-dog">' + scImg("dog") + (nap ? '<span class="sc-zz" aria-hidden="true">💤</span>' : "") + "</span>" +
+      '<span class="sc-label">' + esc(dogName()) + "</span>" + (lonely && !nap ? '<span class="sc-heart" aria-hidden="true">♥</span>' : "") + "</button>";
+  }
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function guestImg(id, w) { return '<img class="sc-sheet-img" src="' + SC + id + '.svg" alt="" width="' + (w || 150) + '">'; }
+
+  function kennelSheet() {
+    var lv = level();
+    if (!F.dog) {
+      var can = lv >= DOG.lvl;
+      openSheet("Будка с собакой", '<div class="center"><div class="dog-pair">' + guestImg("kennel", 150) + guestImg("dog", 110) + "</div>" +
+        "<p>Из леса к грядкам наведываются зайцы, ежи, лисы и вороны. Верный пёс сам прогонит гостя, пока вы заняты, и ни один урожай не пострадает, даже когда вас нет в игре.</p>" +
+        "<p>Пока собаки нет, гостей можно прогнать самому — просто нажмите на зверька.</p>" +
+        (can ? '<button class="btn btn-primary btn-big" data-buykennel' + (F.coins < DOG.price ? " disabled" : "") + ">Завести собаку · " + coin(DOG.price) + "</button>" + (F.coins < DOG.price ? '<p class="muted">Нужно ещё ' + coinsWord(DOG.price - F.coins) + ".</p>" : "")
+          : '<p class="lock">Откроется на уровне ' + DOG.lvl + "</p>") +
+        '<button class="btn btn-ghost btn-big" data-close>Закрыть</button></div>');
+      return;
+    }
+    var D = F.dog, pet = dogDay("pet"), fed = dogDay("fed");
+    var ups = DOG.up.map(function (u) {
+      var own = D[u.id], locked = u.lvl > lv;
+      return '<div class="row-item' + (locked ? " locked" : "") + '"><span class="row-ic" aria-hidden="true">' + u.ic + '</span><div class="row-text"><b>' + u.n + "</b><span>" + u.d + "</span>" + (locked ? '<span class="lock">Откроется на уровне ' + u.lvl + "</span>" : "") + "</div>" +
+        (own ? '<span class="tag">есть ✓</span>' : locked ? "" : '<button class="btn btn-primary btn-sm" data-dogup="' + u.id + '"' + (F.coins < u.price ? " disabled" : "") + ">Купить<small>" + coin(u.price) + "</small></button>") + "</div>";
+    }).join("");
+    openSheet(dogName(), '<div class="center dog-sheet"><div class="dog-pair">' + guestImg(D.house2 ? "kennel2" : "kennel", 140) + '<span class="dog-hearts" id="dog-hearts" aria-hidden="true"></span>' + guestImg("dog", 110) + "</div>" +
+      '<p class="big-line">' + esc(dogName()) + " сторожит огород</p>" +
+      '<p class="muted">Прогнал гостей: ' + (D.chased || 0) + " · Бдительность сегодня: " + Math.round(dogChance() * 100) + "%</p>" +
+      '<div class="dog-acts">' +
+      (pet ? '<p class="done-line">Сегодня вы уже погладили — ' + esc(dogName()) + " счастлив ♥</p>" : '<button class="btn btn-secondary btn-big" data-dogpet>Погладить ♥ <small>+3 монеты</small></button>') +
+      (fed ? '<p class="done-line">Сегодня накормлен — бдительность 100%</p>' :
+        '<p class="muted">Покормить — и сегодня не пропустит ни одного гостя:</p><div class="btn-row"><button class="btn btn-secondary" data-dogfeed="kasha">🥣 Каша</button><button class="btn btn-secondary" data-dogfeed="bone">🦴 Косточка</button></div>') +
+      "</div><h3>Для " + (D.name === "Жучка" ? "Жучки" : "собаки") + "</h3>" + ups +
+      '<button class="btn btn-ghost btn-big" data-dogname>Переименовать</button><button class="btn btn-ghost btn-big" data-close>Закрыть</button></div>');
+  }
+  function nameSheet(first) {
+    openSheet(first ? "Как назовём собаку?" : "Новое имя", '<div class="center">' + guestImg("dog", 120) + "<p>" + (first ? "У вас появился верный сторож! Выберите имя:" : "Выберите имя:") + "</p>" +
+      '<div class="btn-row">' + DOG.names.map(function (n) { return '<button class="btn btn-secondary" data-dogsetname="' + n + '">' + n + "</button>"; }).join("") + "</div>" +
+      '<label class="field-label" for="dog-name-in">Или своё имя</label><input id="dog-name-in" class="text-in" maxlength="14" autocomplete="off" placeholder="Например, Полкан">' +
+      '<button class="btn btn-primary btn-big" data-dogsetname="">Готово</button></div>');
+  }
+  function buyKennel() {
+    if (F.dog || level() < DOG.lvl) return;
+    if (F.coins < DOG.price) { L().toast("Нужно " + coinsWord(DOG.price) + "."); return; }
+    F.coins -= DOG.price; F.dog = { name: "", since: now(), fed: null, pet: null, collar: false, house2: false, chased: 0 }; F.seen["v:dog"] = 1;
+    save(); L().tone(true); nameSheet(true); rerenderQuiet();
+  }
+  function setDogName(n) {
+    if (!F.dog) return;
+    if (!n) { var inp = $("dog-name-in"); n = inp ? inp.value : ""; }
+    n = String(n).replace(/[<>"&]/g, "").replace(/\s+/g, " ").trim().slice(0, 14);
+    if (!n) n = F.dog.name || "Шарик";
+    var first = !F.dog.name; F.dog.name = n; save(); closeSheet(); rerender();
+    L().toast(first ? n + " поселился в будке и уже сторожит огород!" : "Теперь пса зовут " + n + ".");
+  }
+  function petDog() {
+    if (!F.dog || dogDay("pet")) return;
+    F.dog.pet = L().dayKey(); F.coins += 3; F.st.dogCare++; save(); L().tone(true);
+    kennelSheet(); var hs = $("dog-hearts"); if (hs) hs.innerHTML = "<i>♥</i><i>♥</i><i>♥</i>";
+    L().toast(dogName() + " радостно виляет хвостом! +3 монеты"); rerenderQuiet();
+  }
+  function feedDog(k) {
+    if (!F.dog || dogDay("fed")) return;
+    F.dog.fed = L().dayKey(); F.st.dogCare++;
+    gainXp(2, dogName() + (k === "bone" ? " с удовольствием грызёт косточку" : " съел миску каши") + " — сегодня сторожит без устали. +2 опыта");
+    save(); L().tone(true); kennelSheet(); rerenderQuiet();
+  }
+  function buyDogUp(id) {
+    var u = null; DOG.up.forEach(function (x) { if (x.id === id) u = x; });
+    if (!u || !F.dog || F.dog[id] || u.lvl > level()) return;
+    if (F.coins < u.price) { L().toast("Нужно " + coinsWord(u.price) + "."); return; }
+    F.coins -= u.price; F.dog[id] = true; save(); L().tone(true); L().toast(u.n + " — готово!"); if (!$("sheet").hidden) kennelSheet(); rerenderQuiet();
+  }
+  function rerenderQuiet() { if (current() === "farm" || current() === "upgrades") { var y = window.scrollY; rerender(); window.scrollTo(0, y); } }
+
+  /* Гости */
+  function readyBeds(minAge) {
+    var r = []; F.beds.forEach(function (b, i) { if (b && bedState(b).st === "ready" && (!minAge || now() - b.end >= minAge)) r.push(i); }); return r;
+  }
+  function guestTypes() {
+    var lv = level(), w = season().id === "winter";
+    return GU_IDS.filter(function (id) { return GU[id].lvl <= lv && !(w && GU[id].noWinter); });
+  }
+  function spawnGuest(type, bed) {
+    var rb = readyBeds(0); if (bed === undefined) bed = rb[Math.floor(rnd() * rb.length * 0.9999)];
+    if (bed === undefined || !F.beds[bed]) return false;
+    var ts = guestTypes(); if (!type) type = ts[Math.floor(rnd() * ts.length * 0.9999)]; if (!GU[type]) return false;
+    F.visitor = { t: type, bed: bed, at: now(), awake: !F.dog || rnd() < dogChance() };
+    F.visNext = now() + (20 + Math.random() * 20) * MIN; chasing = false;
+    save(); if (current() === "farm") { var y = window.scrollY; renderFarm(); window.scrollTo(0, y); }
+    return true;
+  }
+  var chasing = false;
+  function guestTick() {
+    if (level() < DOG.lvl || current() !== "farm") return;
+    var V = F.visitor;
+    if (V) {
+      if (!F.beds[V.bed] || bedState(F.beds[V.bed]).st !== "ready") { F.visitor = null; save(); renderFarm(); return; }
+      if (F.dog && V.awake && !chasing && now() - V.at >= dogDelay()) dogChase();
+      return;
+    }
+    if (!F.visNext) { F.visNext = now() + 2 * MIN; save(); return; }
+    if (now() >= F.visNext && $("sheet").hidden && readyBeds(0).length) spawnGuest();
+  }
+  function dogChase() {
+    var V = F.visitor; if (!V || !F.dog || chasing) return;
+    chasing = true;
+    var gEl = document.querySelector("#scene .sc-guest"), dEl = $("sc-dog"), inEl = document.querySelector("#scene .sc-in");
+    var done = function () {
+      chasing = false; if (!F.visitor || !F.dog) return;
+      var g = GU[F.visitor.t], c = CHASE_COINS * (F.dog.house2 ? 2 : 1), first = !F.seen["v:" + F.visitor.t];
+      F.coins += c; F.st.guests++; F.dog.chased = (F.dog.chased || 0) + 1; F.seen["v:" + F.visitor.t] = 1; F.visitor = null; save();
+      L().toast(dogName() + " прогнал" + (F.dog.name === "Жучка" ? "а " : " ") + g.acc + "! +" + coinsWord(c) + (first ? " · Новая запись в Травнике" : ""));
+      if (current() === "farm") { var y = window.scrollY; renderFarm(); window.scrollTo(0, y); }
+    };
+    if (!gEl || !dEl || !inEl || reducedMotion()) { setTimeout(done, 300); return; }
+    var ri = inEl.getBoundingClientRect(), rd = dEl.getBoundingClientRect(), rg = gEl.getBoundingClientRect();
+    var run = document.createElement("span"); run.className = "sc-run"; run.setAttribute("aria-hidden", "true");
+    var w = rd.width * 1.3, h = w * 149 / 240;
+    run.style.cssText = "left:" + (rd.left - ri.left) + "px;top:" + (rd.bottom - ri.top - h) + "px;width:" + w + "px;height:" + h + "px";
+    var dx = rg.left + rg.width / 2 - (rd.left + w / 2), dy = rg.bottom - h - (rd.bottom - h);
+    run.style.setProperty("--dx", dx.toFixed(0) + "px"); run.style.setProperty("--dy", dy.toFixed(0) + "px");
+    run.innerHTML = '<span class="sc-run-in' + (dx < 0 ? " flip" : "") + '">' + scImg("dog-run") + "</span>";
+    inEl.appendChild(run); dEl.style.visibility = "hidden";
+    setTimeout(function () { gEl.classList.add("flee"); }, 900);
+    setTimeout(done, 1900);
+  }
+  function shoo() {
+    var V = F.visitor; if (!V) return;
+    var g = GU[V.t], first = !F.seen["v:" + V.t];
+    F.coins += SHOO_COINS; F.st.guests++; F.seen["v:" + V.t] = 1; F.visitor = null; chasing = false; save(); L().tone(true);
+    var gEl = document.querySelector("#scene .sc-guest"); if (gEl) gEl.classList.add("flee");
+    setTimeout(function () {
+      var y = window.scrollY; renderFarm(); window.scrollTo(0, y);
+      openSheet(g.n + " убежал" + (g.f ? "а" : "") + " в лес", '<div class="center">' + guestImg(V.t, 140) + '<p class="big-line">+' + coinsWord(SHOO_COINS) + "</p>" +
+        '<p class="fact">' + g.fact + "</p>" + (first ? '<p class="muted">Новая запись в Травнике: «Лесные гости».</p>' : "") +
+        (!F.dog ? '<p class="muted">' + (level() >= DOG.lvl ? "Заведите собаку — она будет прогонять гостей сама, даже когда вас нет." : "С уровня " + DOG.lvl + " можно завести собаку-сторожа.") + "</p>" + (level() >= DOG.lvl ? '<button class="btn btn-secondary btn-big" data-dog>К будке</button>' : "") : "") +
+        '<button class="btn btn-primary btn-big" data-close>Хорошо</button></div>');
+    }, reducedMotion() ? 0 : 450);
+  }
+  function guestCard(id) {
+    if (id === "dog") { openSheet("Сторожевой пёс", '<div class="center">' + guestImg("dog", 130) + '<p class="fact">Дворовые собаки веками охраняли деревенские огороды: одного звонкого лая хватает, чтобы зайцы и кабаны обходили усадьбу стороной.</p><button class="btn btn-ghost btn-big" data-close>Закрыть</button></div>'); return; }
+    var g = GU[id]; if (!g) return;
+    openSheet(g.n, '<div class="center">' + guestImg(id, 140) + '<p class="fact">' + g.fact + '</p><button class="btn btn-ghost btn-big" data-close>Закрыть</button></div>');
+  }
+  /* Пока игрока не было: без собаки гость мог полакомиться — не больше одного пучка с одной грядки */
+  function guestAway() {
+    var last = F.lastSeen || 0, t = now(); F.lastSeen = t;
+    if (!last || t - last < AWAY || level() < DOG.lvl) { save(); return; }
+    if (F.dog) {
+      if (F.visitor) { var g = GU[F.visitor.t]; F.coins += CHASE_COINS; F.st.guests++; F.dog.chased = (F.dog.chased || 0) + 1; F.seen["v:" + F.visitor.t] = 1;
+        F.nib = { t: g ? g.acc : "", dog: true }; F.visitor = null; }
+      save(); return;
+    }
+    var cand = readyBeds(20 * MIN).filter(function (i) { return !F.beds[i].bit; });
+    var vb = F.visitor && cand.indexOf(F.visitor.bed) >= 0 ? F.visitor.bed : -1;
+    if (cand.length && (vb >= 0 || rnd() < 0.5)) {
+      var i = vb >= 0 ? vb : cand[Math.floor(rnd() * cand.length * 0.9999)];
+      var ts = guestTypes(), type = F.visitor ? F.visitor.t : ts[Math.floor(rnd() * ts.length * 0.9999)];
+      F.beds[i].bit = type; F.nib = { t: type, p: F.beds[i].p }; F.seen["v:" + type] = 1;
+    }
+    F.visitor = null; save();
+  }
+  function nibHTML() {
+    var n = F.nib; if (!n) return "";
+    if (n.dog) return '<div class="notice guest-note" role="status">' + guestImg("dog", 56) + "<span>Пока вас не было, " + esc(dogName()) + " прогнал" + (F.dog && F.dog.name === "Жучка" ? "а " : " ") + (n.t || "гостя") + " от грядок. +" + coinsWord(CHASE_COINS) + '</span><button class="btn btn-ghost btn-sm" data-nibok>Хорошо</button></div>';
+    var g = GU[n.t] || GU.hare, p = P[n.p];
+    return '<div class="notice guest-note" role="status">' + guestImg(n.t, 56) + "<span>Пока вас не было, к огороду заглянул" + (g.f ? "а " : " ") + g.n.toLowerCase() + (p ? " и полакомился грядкой «" + p.n + "»" : "") +
+      ". С неё соберёте на один пучок меньше — остальной урожай цел. " + (level() >= DOG.lvl ? "Собака-сторож убережёт грядки." : "") + '</span><button class="btn btn-ghost btn-sm" data-nibok>Понятно</button></div>';
+  }
+  function dogGoal() {
+    var lv = level(); if (F.dog || lv < DOG.lvl - 1) return null;
+    if (lv < DOG.lvl) return { pr: 4, ty: "dog", t: "Будка с собакой — с уровня " + DOG.lvl, s: "Пёс будет сторожить грядки от лесных гостей", pct: 0, tab: "farm", anchor: "sc-kennel", ic: "🐕" };
+    return { pr: 2, ty: "dog", t: "Заведите собаку-сторожа", s: "Монеты: " + Math.min(F.coins, DOG.price) + " из " + DOG.price, pct: Math.min(1, F.coins / DOG.price), tab: "farm", anchor: "sc-kennel", ic: "🐕" };
+  }
+  function hiveSheet(i) {
+    var h = F.hives[i]; if (!h) return;
+    var n = hiveReady(h), type = hiveType(h), every = hiveEvery();
+    openSheet("Улей № " + (i + 1), '<div class="center"><img class="sc-sheet-img" src="' + SC + 'hive.svg" alt="" width="140">' +
+      '<p class="big-line">' + HN[type].n + "</p>" +
+      '<span class="jars">' + Array.apply(null, Array(hiveCap())).map(function (_, k) { return '<span class="jar' + (k < n ? " on" : "") + '" style="--c:' + HN[type].col + '"></span>'; }).join("") + "</span>" +
+      (n ? '<button class="btn btn-secondary btn-big" data-takehive="' + i + '">Собрать мёд × ' + n + "</button>"
+        : '<p class="muted">Следующая баночка через <span data-end="' + (h.at + every) + '">' + fmtTime(h.at + every - now()) + "</span></p>") +
+      '<button class="btn btn-primary btn-big" data-tab="apiary">Открыть пасеку</button><button class="btn btn-ghost btn-big" data-close>Закрыть</button></div>');
+  }
+  function decorSheet(id) {
+    var u = U[id]; if (!u) return;
+    var extra = id === "beehive" ? '<p class="big-line">Мёд через <span data-timer="hive">' + fmtTime(HONEY_EVERY - ((now() - F.hiveAt) % HONEY_EVERY)) + "</span></p>" : "";
+    openSheet(u.n, '<div class="center"><img class="sc-sheet-img" src="' + SC + (id === "beehive" ? "hive" : id) + '.svg" alt="" width="180"><p>' + u.d + "</p>" + extra +
+      '<button class="btn btn-ghost btn-big" data-close>Закрыть</button></div>');
+  }
+  function holDecoSheet(id) {
+    var d = null; FD.events.concat(FD.sets).forEach(function (x) { if (x.deco.id === id) d = { deco: x.deco, src: x }; }); if (!d) return;
+    openSheet(d.deco.n, '<div class="center"><p class="sc-big-ic" aria-hidden="true">' + d.deco.ic + "</p><p>Украшение двора — награда за «" + d.src.n + "».</p>" +
+      '<button class="btn btn-ghost btn-big" data-close>Закрыть</button></div>');
+  }
+  function goalsSheet() {
+    openSheet("Ближайшие цели", goalsHTML(true).replace('<h3 class="first">Ближайшие цели</h3>', "") + '<button class="btn btn-ghost btn-big" data-close>Закрыть</button>');
+  }
 
   function renderFarm() {
     if (!$("farm-root")) return;
     refreshOrders();
-    var beds = F.beds.map(function (_, i) { return bedHTML(i); }).join("");
-    var bp = bedPrice();
-    if (bp !== null) beds += '<button class="bed buy" data-buybed><span class="bed-plus" aria-hidden="true">+</span><span class="bed-label">Новая грядка</span><span class="bed-price">' + coin(bp) + "</span></button>";
     var readyOrders = F.orders.filter(function (o) { return o && !o.next && have(o.key) >= o.q; }).length;
     var today = L().dayKey();
-    var decor = ["bench", "fence", "birdhouse", "beehive", "gazebo", "pond"].filter(function (id) { return F.up[id]; });
-    var decos = Object.keys(F.deco).map(function (id) { var d = null; FD.events.concat(FD.sets).forEach(function (x) { if (x.deco.id === id) d = x.deco; }); return d; }).filter(Boolean);
-    var yard = decor.length || decos.length ? '<div class="card yard"><h3>Ваш двор</h3><div class="yard-row">' + decor.map(function (id) {
-      if (id === "beehive") {
-        var n = honeyReady();
-        return '<div class="yard-item">' + icon("hive", 64) + "<span>Улей</span>" + (n ? '<button class="btn btn-secondary btn-sm" data-honey>Собрать мёд × ' + n + "</button>" : '<span class="muted small">Мёд через <span data-timer="hive">' + fmtTime(HONEY_EVERY - ((now() - F.hiveAt) % HONEY_EVERY)) + "</span></span>") + "</div>";
-      }
-      return '<div class="yard-item">' + icon(U[id].icon, 64) + "<span>" + U[id].n + "</span></div>";
-    }).join("") + decos.map(function (d) { return '<div class="yard-item"><span class="deco-ic" aria-hidden="true">' + d.ic + "</span><span>" + d.n + "</span></div>"; }).join("") + "</div></div>" : "";
     var vet = F.tut >= 3 || F.harvested > 2;
-    $("farm-root").innerHTML = headerHTML() + (vet ? areaTabs("farm") + bannerHTML() : "") + hintHTML("farm") +
-      (vet ? goalsHTML() : "") +
-      '<h2 class="farm-title">Аптекарский огород</h2>' +
-      '<div class="beds" id="beds">' + beds + "</div>" +
+    $("farm-root").innerHTML = headerHTML() + (vet ? areaTabs("farm") + bannerHTML() : "") + hintHTML("farm") + nibHTML() +
+      sceneHTML() +
       (readyOrders ? '<button class="notice" data-tab="shop">Можно выполнить заказ' + (readyOrders > 1 ? "ы" : "") + " в Лавке (" + readyOrders + ") →</button>" : "") +
-      (vet ? dailyHTML() : "") +
-      yard +
+      (vet ? goalsHTML() + dailyHTML() : "") +
       '<div class="bonus-list">' +
       '<button class="bonus" data-go="quiz-intro"><span class="bonus-ic" aria-hidden="true">❓</span><span><b>Правда или миф</b><span>' +
       (F.quizDay === today ? "Бонус дня получен ✓" : "Ответьте на 5 вопросов — до +45 монет") + "</span></span></button>" +
@@ -746,8 +1170,8 @@
     var lockedRecipes = FD.recipes.length - FD.recipes.filter(recipeOpen).length;
     $("barn-root").innerHTML = headerHTML() + hintHTML("barn") +
       '<h2 class="farm-title">Амбар</h2>' +
-      '<div class="card"><h3 class="first">Сушилка</h3><p class="muted">Свежие травы сохнут здесь и потом стоят дороже.</p>' + racks + "</div>" +
-      '<div class="card"><h3 class="first">' + (F.up.bigtable ? "Большой стол рецептов" : "Стол рецептов") + '</h3><p class="muted">Чаи — из сушёных трав, варенье и морсы — из ягод и плодов сада и леса.</p>' + (recipes || "<p>Скоро здесь появятся рецепты.</p>") +
+      '<div class="card" id="racks"><h3 class="first">Сушилка</h3><p class="muted">Свежие травы сохнут здесь и потом стоят дороже.</p>' + racks + "</div>" +
+      '<div class="card" id="recipes"><h3 class="first">' + (F.up.bigtable ? "Большой стол рецептов" : "Стол рецептов") + '</h3><p class="muted">Чаи — из сушёных трав, варенье и морсы — из ягод и плодов сада и леса.</p>' + (recipes || "<p>Скоро здесь появятся рецепты.</p>") +
       (lockedRecipes ? '<p class="muted small">Ещё ' + lockedRecipes + " " + L().plural(lockedRecipes, "рецепт откроется", "рецепта откроются", "рецептов откроются") + " с новыми растениями.</p>" : "") + "</div>" +
       '<div class="card"><h3 class="first">Запасы</h3>' +
       storeRows("f:", "Свежие травы", "Пока пусто — соберите урожай на грядках.") + storeRows("d:", "Сушёные травы", "Положите свежие травы в сушилку.") +
@@ -834,7 +1258,15 @@
           (owned ? '<span class="owned">Куплено ✓</span>' : locked ? "" : '<button class="btn btn-primary btn-sm" data-up="' + u.id + '"' + (F.coins < u.price ? " disabled" : "") + ">Купить<small>" + coin(u.price) + "</small></button>") + "</div>";
       }).join("");
     }).join("");
-    $("upgrades-root").innerHTML = headerHTML() + '<h2 class="farm-title">Улучшения</h2><div class="card"><h3 class="first">Угодья</h3>' + areas + "</div><div class=\"card\">" + byG + "</div>";
+    var dogRows = '<h3 class="upg">Сторож</h3><div class="row-item' + (lv < DOG.lvl ? " locked" : "") + (!F.dog && lv >= DOG.lvl ? " new" : "") + '"><img class="row-img" src="' + SC + 'kennel.svg" alt="" loading="lazy" decoding="async"><div class="row-text"><b>Будка с собакой</b><span>Пёс прогоняет лесных гостей от грядок — урожай цел, даже пока вас нет.</span>' +
+      (lv < DOG.lvl ? '<span class="lock">Откроется на уровне ' + DOG.lvl + "</span>" : "") + "</div>" +
+      (F.dog ? '<button class="btn btn-ghost btn-sm" data-dog>' + esc(dogName()) + "</button>" : lv < DOG.lvl ? "" : '<button class="btn btn-primary btn-sm" data-dog>Подробнее<small>' + coin(DOG.price) + "</small></button>") + "</div>" +
+      (F.dog ? DOG.up.map(function (u) {
+        var locked = lv < u.lvl;
+        return '<div class="row-item' + (locked ? " locked" : "") + '"><span class="row-ic" aria-hidden="true">' + u.ic + '</span><div class="row-text"><b>' + u.n + "</b><span>" + u.d + "</span>" + (locked ? '<span class="lock">Откроется на уровне ' + u.lvl + "</span>" : "") + "</div>" +
+          (F.dog[u.id] ? '<span class="owned">Куплено ✓</span>' : locked ? "" : '<button class="btn btn-primary btn-sm" data-dogup="' + u.id + '"' + (F.coins < u.price ? " disabled" : "") + ">Купить<small>" + coin(u.price) + "</small></button>") + "</div>";
+      }).join("") : "");
+    $("upgrades-root").innerHTML = headerHTML() + '<h2 class="farm-title">Улучшения</h2><div class="card"><h3 class="first">Угодья</h3>' + areas + "</div><div class=\"card\">" + byG + dogRows + "</div>";
   }
   function renderGuide() {
     if (!$("guide-root")) return;
@@ -899,10 +1331,11 @@
   var tickN = 0;
   function tick() {
     var c = current();
-    if (c === "farm") updateFarmLive();
+    if (c === "farm") { guestTick(); updateFarmLive(); }
+    if (tickN % 15 === 0) markSeen();
     else if (c === "barn") updateBarnLive();
     else if (c === "shop") updateShopLive();
-    if (AREA_SCREENS.indexOf(c) >= 0 || c === "shop") updateEnds();
+    if (AREA_SCREENS.indexOf(c) >= 0 || c === "shop" || c === "farm") updateEnds();
     else if (!$("sheet").hidden) updateEnds();
     if (++tickN % 3 === 0 && FARM_SCREENS.indexOf(c) >= 0 && !F.news && checkAch(false).length) { if ($("sheet").hidden) rerender(); }
     if (!$("sheet").hidden) {
@@ -929,6 +1362,19 @@
       if ((el = t.closest("[data-plant]"))) { plant(+el.getAttribute("data-bed"), el.getAttribute("data-plant")); return; }
       if ((el = t.closest("[data-water]"))) { water(+el.getAttribute("data-water")); return; }
       if ((el = t.closest("[data-buybed]"))) { buyBed(); return; }
+      /* v6 */
+      if ((el = t.closest("[data-shoo]"))) { shoo(); return; }
+      if ((el = t.closest("[data-dog]"))) { if (F.dog && F.visitor && !F.visitor.awake && el.closest("#scene")) { F.visitor.awake = true; F.visitor.at = now() - dogDelay(); save(); L().toast(dogName() + " проснулся и бросился к гостю!"); dogChase(); } else { closeSheet(); kennelSheet(); } return; }
+      if ((el = t.closest("[data-buykennel]"))) { buyKennel(); return; }
+      if ((el = t.closest("[data-dogsetname]"))) { setDogName(el.getAttribute("data-dogsetname")); return; }
+      if ((el = t.closest("[data-dogname]"))) { nameSheet(false); return; }
+      if ((el = t.closest("[data-dogpet]"))) { petDog(); return; }
+      if ((el = t.closest("[data-dogfeed]"))) { feedDog(el.getAttribute("data-dogfeed")); return; }
+      if ((el = t.closest("[data-dogup]"))) { buyDogUp(el.getAttribute("data-dogup")); return; }
+      if ((el = t.closest("[data-guestcard]"))) { guestCard(el.getAttribute("data-guestcard")); return; }
+      if ((el = t.closest("[data-nibok]"))) { F.nib = null; save(); var y0 = window.scrollY; renderFarm(); window.scrollTo(0, y0); return; }
+      if ((el = t.closest("[data-oall]"))) { var no = 0; F.orchard.forEach(function (s, i) { if (s && treeState(s).st === "ready") { harvestTree(i); no++; } }); return; }
+      if ((el = t.closest("[data-aall]"))) { F.hives.forEach(function (h, i) { if (hiveReady(h)) takeHive(i); }); return; }
       if ((el = t.closest(".bed[data-bed]"))) {
         var i = +el.getAttribute("data-bed"), st = bedState(F.beds[i]).st;
         if (st === "empty") seedSheet(i); else if (st === "ready") harvest(i); else bedSheet(i);
@@ -970,11 +1416,19 @@
       if ((el = t.closest("[data-sellall]"))) { sell(el.getAttribute("data-sellall"), true); return; }
       if ((el = t.closest("[data-up]"))) { buyUp(el.getAttribute("data-up")); return; }
       if ((el = t.closest("[data-honey]"))) { takeHoney(); return; }
+      if ((el = t.closest("[data-schive]"))) { var hi = +el.getAttribute("data-schive"); if (F.hives[hi] && hiveReady(F.hives[hi])) takeHive(hi); else hiveSheet(hi); return; }
+      if ((el = t.closest("[data-goals]"))) { goalsSheet(); return; }
+      if ((el = t.closest("[data-decor]"))) { decorSheet(el.getAttribute("data-decor")); return; }
+      if ((el = t.closest("[data-holdeco]"))) { holDecoSheet(el.getAttribute("data-holdeco")); return; }
       if ((el = t.closest("[data-skiptut]"))) { F.tut = 9; save(); L().show(current()); return; }
     });
     document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeSheet(); });
     setInterval(tick, 1000);
-    document.addEventListener("visibilitychange", function () { if (!document.hidden) tick(); });
+    guestAway();
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) { markSeen(); return; }
+      var hadNib = F.nib; guestAway(); if (F.nib !== hadNib && current() === "farm") renderFarm(); tick();
+    });
     var nav = $("farm-nav");
     if (nav) nav.innerHTML = [["farm", "Угодья"], ["barn", "Амбар"], ["shop", "Лавка"], ["upgrades", "Улучшения"], ["collection", "Травник"]].map(function (x) {
       return '<button data-tab="' + x[0] + '">' + svg(NAV_ICONS[x[0] === "collection" ? "guide" : x[0]], 30, "nav-ic") + "<span>" + x[1] + "</span></button>";
@@ -1535,6 +1989,7 @@
       { n: "Сад", items: FD.trees.map(function (t) { return { key: "o:" + t.id, n: t.fruit, img: plantImg(t, 3, 64), wcard: t.id }; }) },
       { n: "Лес", items: FD.forest.map(function (w) { return { key: "w:" + w.id, n: w.n, img: plantImg(w, 3, 64), wcard: w.id }; }) },
       { n: "Пасека", items: FD.honey.map(function (h) { return { key: "h:" + h.id, n: h.n, img: itemIcon("h:" + h.id, 56) }; }).concat(FD.beeGoods.map(function (h) { return { key: "x:" + h.id, n: h.n, img: itemIcon("x:" + h.id, 56) }; })) },
+      { n: "Лесные гости и сторож", items: ["dog"].concat(GU_IDS).map(function (id) { return { key: "v:" + id, n: id === "dog" ? "Сторожевой пёс" : GU[id].n, img: '<img src="' + SC + id + '.svg" alt="" width="56" height="56" loading="lazy" decoding="async" style="object-fit:contain">', gcard: id }; }) },
       { n: "Кладовая: чаи, варенье, заготовки", items: FD.recipes.map(function (r) { return { key: "t:" + r.id, n: r.n, img: itemIcon("t:" + r.id, 56) }; }) }
     ];
   }
@@ -1585,7 +2040,7 @@
     var album = albumGroups().map(function (g) {
       return "<h3>" + g.n + '</h3><div class="album">' + g.items.map(function (it) {
         var on = seen(it.key) || (it.alt && seen(it.alt));
-        var attr = it.card ? ' data-card="' + it.card + '"' : it.wcard ? ' data-wcard="' + it.wcard + '"' : "";
+        var attr = it.card ? ' data-card="' + it.card + '"' : it.wcard ? ' data-wcard="' + it.wcard + '"' : it.gcard ? ' data-guestcard="' + it.gcard + '"' : "";
         return '<button class="alb' + (on ? " on" : "") + '"' + (on ? attr : " disabled") + ">" + (on ? it.img : '<span class="alb-q" aria-hidden="true">?</span>') + "<span>" + (on ? esc(it.n) : "Ещё не найдено") + "</span></button>";
       }).join("") + "</div>";
     }).join("");
@@ -1615,6 +2070,7 @@
     ensureDaily();
     if (!F.daily.chest) { var dn = F.daily.tasks.filter(function (t) { return t.p >= t.n; }).length; g.push({ pr: dailyDone() ? 0 : 3, ty: "daily", t: dailyDone() ? "Откройте сундучок дня" : "Задания дня", s: dn + " из 3 выполнено", pct: dn / 3, tab: "farm", anchor: "daily", ic: "🧰" }); }
     if (lv >= 5) { ensureContract(); var c = F.contract; if (!c.done) { var cd = c.lines.filter(function (l) { return l.got >= l.q; }).length; g.push({ pr: 3, ty: "contract", t: "Контракт Аптеки", s: cd + " из " + c.lines.length + " позиций · ещё " + daysWord(daysLeftInWeek()), pct: cd / c.lines.length, tab: "shop", shoptab: "pharmacy", ic: "⚕" }); } }
+    var dg = dogGoal(); if (dg) g.push(dg);
     var ups = FD.upgrades.filter(function (u) { return !F.up[u.id] && u.lvl <= lv; }).sort(function (a, b) { return a.price - b.price; });
     if (ups[0]) g.push({ pr: 5, ty: "up", t: "Купите «" + ups[0].n + "»", s: "Монеты: " + Math.min(F.coins, ups[0].price) + " из " + ups[0].price, pct: F.coins / ups[0].price, tab: "upgrades", icon: ups[0].icon });
     if (lv < FD.levelXp.length) g.push({ pr: 5, ty: "level", t: "Уровень " + (lv + 1) + ": «" + levelName(lv + 1) + "»", s: "Ещё " + (FD.levelXp[lv] - F.xp) + " опыта", pct: (F.xp - FD.levelXp[lv - 1]) / (FD.levelXp[lv] - FD.levelXp[lv - 1]), tab: "farm", ic: "⭐" });
@@ -1628,8 +2084,8 @@
     g.forEach(function (x) { if (out.length < 3 && (per[x.ty] || 0) < 2) { out.push(x); per[x.ty] = (per[x.ty] || 0) + 1; } });
     return out;
   }
-  function goalsHTML() {
-    return '<div class="card goals" id="goals"><h3 class="first">Ближайшие цели</h3>' + goals().map(function (x) {
+  function goalsHTML(noId) {
+    return '<div class="card goals"' + (noId ? "" : ' id="goals"') + '><h3 class="first">Ближайшие цели</h3>' + goals().map(function (x) {
       var ic = x.img ? '<img src="img/plants/' + x.img + '.svg" alt="" loading="lazy" decoding="async">' : x.icon ? icon(x.icon, 44) : '<span aria-hidden="true">' + x.ic + "</span>";
       return '<button class="goal" data-tab="' + x.tab + '"' + (x.shoptab ? ' data-shoptab="' + x.shoptab + '"' : "") + (x.anchor ? ' data-anchor="' + x.anchor + '"' : "") + '><span class="goal-ic">' + ic + '</span><span class="goal-t"><b>' + x.t + "</b><span>" + x.s +
         '</span><span class="goal-bar"><span style="width:' + Math.round(Math.min(1, Math.max(0, x.pct)) * 100) + '%"></span></span></span><span class="goal-go" aria-hidden="true">›</span></button>';
@@ -1668,6 +2124,7 @@
   window.LZFarm = {
     onShow: onShow, onQuizDone: onQuizDone, reset: reset, bind: bind,
     _state: function () { return F; }, _plantSVG: plantSVG, _plantImg: plantImg,
+    _v6: { spawn: function (t, b) { return spawnGuest(t, b); }, away: function (ms) { F.lastSeen = now() - ms; guestAway(); rerender(); return F.nib; }, chase: function () { dogChase(); }, guests: GU, dog: DOG, state: function () { return { dog: F.dog, visitor: F.visitor, nib: F.nib, visNext: F.visNext, guests: F.st.guests, dogCare: F.st.dogCare }; } },
     _v4: { activeEvent: activeEvent, nextEvent: nextEvent, season: season, nextSeason: nextSeason, daysLeftInSeason: daysLeftInSeason, goals: goals, eventWindows: eventWindows, dayNum: dayNum, availableKeys: availableKeys, statVal: statVal, albumTotal: albumTotal, albumSeen: albumSeen, save: save }
   };
 })();
