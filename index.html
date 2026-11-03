@@ -65,7 +65,7 @@
           <span class="menu-text">
             <span class="pill pill-gold">Новое</span>
             <span class="menu-title">Тренировка памяти и внимания</span>
-            <span class="menu-desc" id="brain-status">Таблица Шульте и другие разминки для ума</span>
+            <span class="menu-desc" id="brain-status">Таблица Шульте, Словодел и другие разминки для ума</span>
           </span>
         </button>
         <button class="menu-card" data-go="quiz-intro">
@@ -254,6 +254,18 @@
       <div id="schulte-result-root"></div>
     </section>
 
+    <!-- СЛОВОДЕЛ (js/wordgame.js, ответы — js/words-data.js) -->
+    <section id="screen-words-intro" class="screen" aria-labelledby="wd-intro-title">
+      <div class="topnav"><button class="btn-back" data-brain-back="brain">← Ко всем играм</button></div>
+      <div id="words-intro-root"></div>
+    </section>
+    <section id="screen-words" class="screen wd-screen" aria-label="Словодел">
+      <div id="words-root"></div>
+    </section>
+    <section id="screen-words-result" class="screen" aria-labelledby="wd-res-title">
+      <div id="words-result-root"></div>
+    </section>
+
     <!-- СОВЕТ ДНЯ -->
     <section id="screen-tip" class="screen" aria-labelledby="tip-title">
       <div class="topnav"><button class="btn-back" data-back>← На главную</button></div>
@@ -337,6 +349,8 @@
   <script src="js/farm.js"></script>
   <script src="js/brain.js"></script>
   <script src="js/schulte.js"></script>
+  <script src="js/words-data.js"></script>
+  <script src="js/wordgame.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
