@@ -1,5 +1,5 @@
 /* Лаборатория здоровья — сервис-воркер: работа без интернета */
-var CACHE = "lz-game-v11";
+var CACHE = "lz-game-v12";
 var ASSETS = [
   "./",
   "./index.html",
