@@ -1,5 +1,5 @@
 /* Лаборатория здоровья — сервис-воркер: работа без интернета */
-var CACHE = "lz-game-v8";
+var CACHE = "lz-game-v10";
 var ASSETS = [
   "./",
   "./index.html",
@@ -30,9 +30,21 @@ var ASSETS = [
   "./img/plants/calendula.svg",
   "./img/plants/apple.svg",
   "./img/plants/hive.svg",
-  "./img/plants/porcini.svg"
+  "./img/plants/porcini.svg",
+  "./img/scene/bed.svg",
+  "./img/scene/fence.svg",
+  "./img/scene/house.svg",
+  "./img/scene/barn.svg",
+  "./img/scene/shop.svg",
+  "./img/scene/rack.svg",
+  "./img/scene/table.svg",
+  "./img/scene/board.svg",
+  "./img/scene/book.svg",
+  "./img/scene/kennel.svg",
+  "./img/scene/dog.svg",
+  "./img/scene/dog-run.svg"
 ];
-// Остальные рисунки растений кэшируются при первом показе (см. «Статика: сначала кэш»).
+// Сезонные фоны усадьбы, деревья и украшения, остальные рисунки растений кэшируются при первом показе (см. «Статика: сначала кэш»).
 
 self.addEventListener("install", function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(ASSETS); }).then(function () { return self.skipWaiting(); }));
