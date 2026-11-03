@@ -37,7 +37,7 @@
       /* v9: бонус дня за «Тренировку памяти и внимания» — { "3": "2026-11-03", ... } */
       brainDay: {} };
   }
-  function freshStats() { return { orchard: 0, honey: 0, forest: 0, jams: 0, contracts: 0, fairs: 0, convoys: 0, events: 0, chests: 0, weekChests: 0, dried: 0, guests: 0, dogCare: 0, brain: 0 }; }
+  function freshStats() { return { orchard: 0, honey: 0, forest: 0, jams: 0, contracts: 0, fairs: 0, convoys: 0, events: 0, chests: 0, weekChests: 0, dried: 0, guests: 0, dogCare: 0, brain: 0, words: 0 }; }
   /* Перенос сохранений v1–v3: ничего не удаляем, только добавляем новое */
   function migrate(raw) {
     var st = freshStats(); for (var s in st) if (!(s in raw.st)) raw.st[s] = st[s];
@@ -556,11 +556,14 @@
     L().toast("За совет дня в огород: +5 монет");
   }
 
-  /* v9: «Тренировка памяти и внимания» — скромный бонус раз в день за каждый размер таблицы */
-  var BRAIN_COINS = { "3": 10, "4": 15, "5": 20 };
+  /* v9: «Тренировка памяти и внимания» — скромный бонус раз в день за каждый размер таблицы.
+     v10: «Словодел» — +15 монет раз в день за первый пройденный раунд (свой ключ "words"). */
+  var BRAIN_COINS = { "3": 10, "4": 15, "5": 20, "words": 15 };
+  function brainKey(game, variant) { return game === "words" ? "words" : String(variant); }
   function onBrain(game, variant) {
-    var today = L().dayKey(), v = String(variant), coins = 0, already = false;
-    F.st.brain = (F.st.brain || 0) + 1; track("brain");
+    var today = L().dayKey(), v = brainKey(game, variant), coins = 0, already = false;
+    F.st.brain = (F.st.brain || 0) + 1;
+    if (game === "words") { F.st.words = (F.st.words || 0) + 1; track("words"); } else track("brain");
     if (BRAIN_COINS[v]) {
       if (F.brainDay[v] === today) already = true;
       else { F.brainDay[v] = today; coins = BRAIN_COINS[v]; F.coins += coins; }
@@ -569,9 +572,10 @@
     return { coins: coins, already: already };
   }
   function brainLeft() { var today = L().dayKey(), n = 0; for (var v in BRAIN_COINS) if (F.brainDay[v] !== today) n += BRAIN_COINS[v]; return n; }
-  /* строка для витрины игр и огорода; size — конкретный размер или все */
+  /* строка для витрины игр и огорода; size — конкретный размер таблицы, "words" — Словодел, или все */
   function brainStatus(size) {
     var today = L().dayKey();
+    if (size === "words") return F.brainDay.words === today ? "Бонус огорода за Словодел сегодня получен ✓" : "За первый пройденный раунд сегодня: +" + coinsWord(BRAIN_COINS.words) + " в огород";
     if (size != null) { var v = String(size); return F.brainDay[v] === today ? "Бонус огорода за этот размер сегодня получен ✓" : "За первую игру сегодня: +" + coinsWord(BRAIN_COINS[v]) + " в огород"; }
     var left = brainLeft();
     return left ? "Бонус огорода сегодня: до +" + coinsWord(left) : "Бонус дня получен ✓";
@@ -1157,7 +1161,7 @@
       '<button class="bonus" data-go="quiz-intro"><span class="bonus-ic" aria-hidden="true">❓</span><span><b>Правда или миф</b><span>' +
       (F.quizDay === today ? "Бонус дня получен ✓" : "Ответьте на 5 вопросов — до +45 монет") + "</span></span></button>" +
       '<button class="bonus" data-go="tip"><span class="bonus-ic" aria-hidden="true">🌿</span><span><b>Совет дня</b><span>' + (F.tipDay === today ? "Прочитан ✓" : "Прочитайте — +5 монет") + "</span></span></button>" +
-      '<button class="bonus" data-go="brain"><span class="bonus-ic" aria-hidden="true">🧩</span><span><b>Разминка для ума</b><span>' + (brainLeft() ? "Таблица Шульте — до +" + coinsWord(brainLeft()) + " в день" : "Бонус дня получен ✓") + "</span></span></button>" +
+      '<button class="bonus" data-go="brain"><span class="bonus-ic" aria-hidden="true">🧩</span><span><b>Разминка для ума</b><span>' + (brainLeft() ? "Шульте и Словодел — до +" + coinsWord(brainLeft()) + " в день" : "Бонус дня получен ✓") + "</span></span></button>" +
       "</div>" +
       '<p class="doctor-note">Игра носит познавательный характер. Перед применением трав посоветуйтесь с врачом.</p>';
     scFit();
