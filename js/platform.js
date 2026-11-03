@@ -98,7 +98,17 @@
     init: function () { return adapters[name].init().catch(function () {}); },
     share: function (text) { return adapters[name].share(text, groupUrl[name]); },
     saveProgress: function (state) { return adapters[name].saveProgress(state).catch(function () {}); },
-    showAd: function () { return adapters[name].showAd(); }
+    showAd: function () { return adapters[name].showAd(); },
+    /* v9: заготовка общей таблицы рекордов для «Тренировки памяти и внимания» (ВЫКЛЮЧЕНА).
+       Сейчас результаты хранятся только на устройстве (lz_brain_v1).
+       TODO ВК:  VK Bridge "VKWebAppShowLeaderBoardBox" / таблица рекордов через свой сервер.
+       TODO ОК:  FAPI.UI.showRatingDialog / рейтинги через REST API ОК — запись только на сервере, без ключей в клиенте.
+       Включать вместе с SDK_ENABLED и проверкой подписи запуска; до этого никаких сетевых запросов. */
+    leaderboard: {
+      enabled: false,
+      submit: function (game, variant, score) { return Promise.resolve(false); },
+      top: function (game, variant, limit) { return Promise.resolve([]); }
+    }
   };
   document.documentElement.setAttribute("data-platform", name);
 })();
