@@ -163,13 +163,38 @@
       : "Пройдите " + QUIZ_LEN + " вопросов дня, чтобы продлить серию. За каждый верный ответ — 10 очков, за весь день — ещё 20.";
   }
 
+  /* Без повторов: S.seen — история показанных вопросов (номера в D.questions),
+     от давних к недавним, каждый номер один раз. Сначала берём ещё не показанные;
+     когда новые кончаются — только из «старой» половины истории, так что
+     недавно показанный вопрос не вернётся, пока не пройдёт большая часть набора. */
+  function cleanSeen() {
+    var n = D.questions.length, out = [], has = {};
+    (Array.isArray(S.seen) ? S.seen : []).forEach(function (i) {
+      if (typeof i === "number" && i >= 0 && i < n && i === Math.floor(i)) {
+        if (has[i]) out.splice(out.indexOf(i), 1); has[i] = 1; out.push(i);
+      }
+    });
+    S.seen = out;
+  }
+  function markSeen(idx) {
+    var k = S.seen.indexOf(idx); if (k >= 0) S.seen.splice(k, 1);
+    S.seen.push(idx);
+  }
   function pickQuestions() {
-    var all = D.questions.map(function (_, i) { return i; });
-    var pool = all.filter(function (i) { return S.seen.indexOf(i) < 0; });
-    if (pool.length < QUIZ_LEN) { S.seen = []; pool = all; }
+    cleanSeen();
     // Вопросы дня одинаковы в течение дня (детерминированно от даты)
     var rnd = dailyDone() ? Math.random : seeded(hashStr(dayKey()));
-    return shuffle(pool, rnd).slice(0, QUIZ_LEN);
+    var n = D.questions.length, inSeen = {};
+    S.seen.forEach(function (i) { inSeen[i] = 1; });
+    var fresh = [];
+    for (var i = 0; i < n; i++) if (!inSeen[i]) fresh.push(i);
+    var pick = shuffle(fresh, rnd).slice(0, QUIZ_LEN);
+    if (pick.length < QUIZ_LEN) {
+      // самые давние вопросы: первая половина истории (не меньше, чем нужно)
+      var old = S.seen.slice(0, Math.max(QUIZ_LEN * 2, Math.floor(S.seen.length / 2)));
+      pick = pick.concat(shuffle(old, rnd).slice(0, QUIZ_LEN - pick.length));
+    }
+    return pick;
   }
 
   function startQuiz() {
@@ -179,6 +204,7 @@
 
   function renderQuestion() {
     var q = D.questions[Q.list[Q.i]];
+    markSeen(Q.list[Q.i]); save();
     $("q-counter").textContent = "Вопрос " + (Q.i + 1) + " из " + Q.list.length;
     $("q-topic").textContent = q.t;
     $("q-text").textContent = q.q;
@@ -194,7 +220,6 @@
       if (String(val) === b.getAttribute("data-answer")) b.classList.add("chosen");
       if (String(q.a) === b.getAttribute("data-answer")) b.classList.add("correct");
     });
-    if (S.seen.indexOf(idx) < 0) S.seen.push(idx);
     S.answered++;
     if (ok) { Q.right++; S.correct++; S.points += 10; }
     save(); tone(ok);
