@@ -12,13 +12,24 @@
     var forced = params.get("platform");
     if (forced === "ok" || forced === "vk" || forced === "web") return forced;
     // VK Mini Apps передают vk_app_id, vk_user_id, vk_platform, sign …
+    if (params.get("vk") === "1" || params.has("sign") && params.has("vk_user_id")) return "vk";
     if (params.has("vk_app_id") || params.has("vk_platform") || params.has("vk_user_id")) return "vk";
+    if (params.get("ok") === "1") return "ok";
     // Игры ОК во фрейме получают api_server, apiconnection, application_key, logged_user_id …
     if (params.has("api_server") || params.has("apiconnection") || params.has("application_key") || params.has("logged_user_id")) return "ok";
     return "web";
   }
 
   var name = detect();
+
+  /* v11: настройки «игры для подписчиков» ВК */
+  var VK_APP_ID = 54875478;          // ID мини-приложения ВК (вписать после регистрации); 0 = взять из vk_app_id запуска
+  var VK_GROUP_ID = 68950530; // сообщество https://vk.ru/labzdorovia
+  /* v12: «игра для подписчиков» ОК. Секретный ключ приложения здесь НЕ хранится. */
+  var OK_APP_ID = 0;          // ID игры ОК (вписать после регистрации)
+  var OK_APP_KEY = "";        // ПУБЛИЧНЫЙ ключ приложения; пусто = взять application_key из запуска
+  var OK_GROUP_ID = "70000033417881"; // https://ok.ru/labzdorov
+  var LOCK_SITE = false;      // true = на обычном сайте тоже закрыть игру (пока НЕ закрываем)
 
   /* Включить, когда приложения будут зарегистрированы. Пока всегда false. */
   var SDK_ENABLED = false;
@@ -104,6 +115,9 @@
        TODO ВК:  VK Bridge "VKWebAppShowLeaderBoardBox" / таблица рекордов через свой сервер.
        TODO ОК:  FAPI.UI.showRatingDialog / рейтинги через REST API ОК — запись только на сервере, без ключей в клиенте.
        Включать вместе с SDK_ENABLED и проверкой подписи запуска; до этого никаких сетевых запросов. */
+    vk: { appId: VK_APP_ID || Number(params.get("vk_app_id")) || 0, groupId: VK_GROUP_ID },
+    ok: { appId: OK_APP_ID, appKey: OK_APP_KEY || params.get("application_key") || "", groupId: OK_GROUP_ID, groupUrl: "https://ok.ru/group/" + OK_GROUP_ID },
+    lockSite: LOCK_SITE,
     leaderboard: {
       enabled: false,
       submit: function (game, variant, score) { return Promise.resolve(false); },
