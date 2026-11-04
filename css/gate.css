@@ -1,0 +1,14 @@
+/* v11: экран «Игра для подписчиков группы» */
+.gate-on .app{visibility:hidden}
+.vk-gate{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--cream,#fbf6e9);overflow:auto}
+.vk-gate[hidden]{display:none}
+.gate-card{max-width:520px;width:100%;text-align:center;background:var(--card);border:2px solid var(--gold,#c49a3c);border-radius:24px;padding:32px 24px;box-shadow:0 8px 28px rgba(31,61,32,.12)}
+.gate-card img{width:96px;height:96px}
+.gate-card h1{font-family:Lora,serif;color:var(--green-dark,#1f3d20);font-size:30px;line-height:1.25;margin:16px 0 8px}
+.gate-card p{font-family:Nunito,sans-serif;color:var(--text,#2b2a24);font-size:21px;line-height:1.5;margin:12px 0 24px}
+.gate-btn{display:block;width:100%;min-height:64px;margin:14px 0 0;border-radius:16px;font:700 22px Nunito,sans-serif;cursor:pointer;border:2px solid var(--green,#2e5b2b)}
+.gate-btn.main{background:var(--green,#2e5b2b);color:#fff}
+.gate-btn.alt{background:#fff;color:var(--green-dark,#1f3d20)}
+.gate-part{display:none}
+.vk-gate[data-state="loading"] .p-loading,.vk-gate[data-state="join"] .p-join,.vk-gate[data-state="error"] .p-error,.vk-gate[data-state="site"] .p-site{display:block}
+.gate-gold{width:80px;height:3px;background:var(--gold,#c49a3c);margin:0 auto;border-radius:2px}
