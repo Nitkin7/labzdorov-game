@@ -112,9 +112,24 @@
   function go(name, replace) {
     var d = (history.state && history.state.d) || 0;
     if (replace) history.replaceState({ s: name, d: d }, ""); else history.pushState({ s: name, d: name === "home" ? 0 : d + 1 }, "");
+    lastState = history.state;
     show(name);
   }
-  window.addEventListener("popstate", function (e) { show((e.state && e.state.s) || "home"); });
+  /* v14: системная кнопка «Назад» (Android в ВК/ОК): сначала закрывает открытое окно,
+     потом шаг за шагом возвращает по экранам игры; с главной — выход из приложения. */
+  var lastState = null;
+  function overlayOpen() {
+    var m = $("modal"); if (m && !m.hidden) { $("modal-no").click(); return true; }
+    if (window.LZFarm && LZFarm.closeSheet && LZFarm.closeSheet()) return true;
+    return false;
+  }
+  window.addEventListener("popstate", function (e) {
+    if (lastState && lastState.s && lastState.s !== "home" && overlayOpen()) {
+      history.pushState(lastState, ""); return;   // остаёмся на том же экране
+    }
+    lastState = e.state;
+    show((e.state && e.state.s) || "home");
+  });
   document.addEventListener("click", function (e) {
     var b = e.target.closest("[data-go]");
     if (b) { e.preventDefault(); var t = b.getAttribute("data-go"); if (t === "home") goHome(); else go(t); return; }
@@ -417,6 +432,7 @@
   /* ---------- Запуск ---------- */
   applyFont();
   history.replaceState({ s: "home" }, "");
+  lastState = history.state;
   show("home");
   if (window.Platform) Platform.init();
 

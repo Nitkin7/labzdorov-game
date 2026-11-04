@@ -1,4 +1,4 @@
-/* Лаборатория здоровья — слой платформ (заглушки).
+/* Лаборатория здоровья — слой платформ.
    Определяет, где запущена игра: ОК (Одноклассники), ВК (VK Mini App) или обычный браузер.
    SDK платформ здесь НЕ загружаются и приложения НЕ регистрируются —
    это точки подключения на будущее. */
@@ -22,29 +22,8 @@
 
   var name = detect();
 
-  /* v11: настройки «игры для подписчиков» ВК */
-  var VK_APP_ID = 54875478;          // ID мини-приложения ВК (вписать после регистрации); 0 = взять из vk_app_id запуска
-  var VK_GROUP_ID = 68950530; // сообщество https://vk.ru/labzdorovia
-  /* v12: «игра для подписчиков» ОК. Секретный ключ приложения здесь НЕ хранится. */
-  var OK_APP_ID = 0;          // ID игры ОК (вписать после регистрации)
-  var OK_APP_KEY = "";        // ПУБЛИЧНЫЙ ключ приложения; пусто = взять application_key из запуска
-  var OK_GROUP_ID = "70000033417881"; // https://ok.ru/labzdorov
-  var LOCK_SITE = false;      // true = на обычном сайте тоже закрыть игру (пока НЕ закрываем)
-
-  /* Включить, когда приложения будут зарегистрированы. Пока всегда false. */
-  var SDK_ENABLED = false;
-  var SDK_URLS = {
-    vk: "https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js",
-    ok: "https://api.ok.ru/js/fapi5.js"
-  };
-
-  function loadScript(src) {
-    return new Promise(function (resolve, reject) {
-      var s = document.createElement("script");
-      s.src = src; s.async = true; s.onload = resolve; s.onerror = reject;
-      document.head.appendChild(s);
-    });
-  }
+  /* v13: проверка подписки убрана — игра открыта для всех. */
+  var VK_APP_ID = 54875478;   // ID мини-приложения ВК
 
   var adapters = {
     web: {
@@ -63,12 +42,7 @@
     },
 
     vk: {
-      init: function () {
-        if (!SDK_ENABLED) return Promise.resolve();
-        return loadScript(SDK_URLS.vk).then(function () {
-          // TODO: window.vkBridge.send("VKWebAppInit");
-        });
-      },
+      init: function () { return Promise.resolve(); },   // VKWebAppInit — в js/vk-init.js
       share: function (text, url) {
         // TODO: window.vkBridge.send("VKWebAppShare", { link: url });
         return adapters.web.share(text, url);
@@ -81,13 +55,7 @@
     },
 
     ok: {
-      init: function () {
-        if (!SDK_ENABLED) return Promise.resolve();
-        return loadScript(SDK_URLS.ok).then(function () {
-          // TODO: var rp = FAPI.Util.getRequestParameters();
-          //       FAPI.init(rp.api_server, rp.apiconnection, onSuccess, onError);
-        });
-      },
+      init: function () { return Promise.resolve(); },   // ОК запускает игру через VK Bridge (js/vk-init.js)
       share: function (text, url) {
         // TODO: FAPI.UI.postMediatopic({ media: [{ type: "text", text: text }, { type: "link", url: url }] }, false);
         return adapters.web.share(text, url);
@@ -114,10 +82,8 @@
        Сейчас результаты хранятся только на устройстве (lz_brain_v1).
        TODO ВК:  VK Bridge "VKWebAppShowLeaderBoardBox" / таблица рекордов через свой сервер.
        TODO ОК:  FAPI.UI.showRatingDialog / рейтинги через REST API ОК — запись только на сервере, без ключей в клиенте.
-       Включать вместе с SDK_ENABLED и проверкой подписи запуска; до этого никаких сетевых запросов. */
-    vk: { appId: VK_APP_ID || Number(params.get("vk_app_id")) || 0, groupId: VK_GROUP_ID },
-    ok: { appId: OK_APP_ID, appKey: OK_APP_KEY || params.get("application_key") || "", groupId: OK_GROUP_ID, groupUrl: "https://ok.ru/group/" + OK_GROUP_ID },
-    lockSite: LOCK_SITE,
+       Включать вместе с проверкой подписи запуска; до этого никаких сетевых запросов. */
+    vk: { appId: VK_APP_ID || Number(params.get("vk_app_id")) || 0 },
     leaderboard: {
       enabled: false,
       submit: function (game, variant, score) { return Promise.resolve(false); },
