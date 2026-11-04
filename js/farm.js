@@ -2177,6 +2177,7 @@
   }
 
   window.LZFarm = {
+    closeSheet: function () { if ($("sheet").hidden) return false; closeSheet(); return true; },
     onShow: onShow, onQuizDone: onQuizDone, onBrain: onBrain, brainStatus: brainStatus, reset: reset, bind: bind,
     _state: function () { return F; }, _plantSVG: plantSVG, _plantImg: plantImg,
     _v6: { spawn: function (t, b) { return spawnGuest(t, b); }, away: function (ms) { F.lastSeen = now() - ms; guestAway(); rerender(); return F.nib; }, chase: function () { dogChase(); }, guests: GU, dog: DOG, state: function () { return { dog: F.dog, visitor: F.visitor, nib: F.nib, visNext: F.visNext, guests: F.st.guests, dogCare: F.st.dogCare }; } },
