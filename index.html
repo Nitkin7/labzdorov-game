@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/farm.css">
   <link rel="stylesheet" href="css/brain.css">
+  <link rel="stylesheet" href="css/gate.css">
 </head>
 <body>
   <div class="bg" aria-hidden="true"></div>
@@ -341,8 +342,33 @@
     </div>
   </div>
 
+  <!-- v11: экран для подписчиков (только в ВК) -->
+  <div id="vk-gate" class="vk-gate" hidden data-state="loading" role="dialog" aria-live="polite">
+    <div class="gate-card">
+      <img src="icons/icon.svg" alt="" width="96" height="96">
+      <div class="gate-part p-loading"><h1>Лаборатория здоровья</h1><div class="gate-gold"></div><p>Открываем игру…</p></div>
+      <div class="gate-part p-join">
+        <h1>Игра для подписчиков группы</h1><div class="gate-gold"></div>
+        <p>Эта игра — подарок для участников нашей группы «Лаборатория здоровья». Вступайте — и играйте сколько захочется!</p>
+        <button class="gate-btn main" data-gate="join">Вступить в группу</button>
+        <button class="gate-btn alt" data-gate="check">Я уже подписан — проверить</button>
+      </div>
+      <div class="gate-part p-error">
+        <h1>Не получилось проверить подписку</h1><div class="gate-gold"></div>
+        <p>Ничего страшного! Возможно, пропал интернет или не дано разрешение. Нажмите кнопку ниже — попробуем ещё раз.</p>
+        <button class="gate-btn main" data-gate="retry">Попробовать ещё раз</button>
+      </div>
+      <div class="gate-part p-site">
+        <h1>Игра для подписчиков группы</h1><div class="gate-gold"></div>
+        <p>Играть можно в нашей группе ВКонтакте.</p>
+        <a class="gate-btn main" style="line-height:60px;text-decoration:none" href="https://vk.ru/labzdorovia">Открыть группу</a>
+      </div>
+    </div>
+  </div>
+
   <script src="js/install.js"></script>
   <script src="js/platform.js"></script>
+  <script src="js/vk-gate.js"></script>
   <script src="js/data.js"></script>
   <script src="js/farm-data.js"></script>
   <script src="js/farm-data2.js"></script>
