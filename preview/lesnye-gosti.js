@@ -52,7 +52,7 @@
     kennel: { x: 78, y: 94 }
   };
   var VB_W = 1000, VB_H = 1280;
-  var SPEED = { fox: 78, hedgehog: 52, dog: 96 };
+  var SPEED = { fox: 130, hedgehog: 105, dog: 165 };
   var ANIMALS = {
     fox: { id: "fox", n: "Лиса", low: "лиса", acc: "лису", verb: "вышла", took: "унесла", pron: "её" },
     hedgehog: { id: "hedgehog", n: "Ёж", low: "ёж", acc: "ежа", verb: "вышел", took: "унёс", pron: "его" }
@@ -125,8 +125,26 @@
     line.textContent = v.note;
   }
 
-  function say(kicker, text, score) {
-    $("kicker").textContent = kicker;
+  function choiceLine() {
+    return animal().n + " · " + (state.dog ? "собака Шарик есть" : "собаки нет");
+  }
+  function syncUrl(keepPose) {
+    var q = new URLSearchParams(location.search);
+    q.set("animal", state.animal);
+    q.set("dog", state.dog ? "1" : "0");
+    if (keepPose && params.get("pose")) q.set("pose", params.get("pose"));
+    else q.delete("pose");
+    q.delete("demo");
+    var next = "?" + q.toString();
+    if (location.search !== next) history.replaceState(null, "", location.pathname + next);
+    $("now").textContent = "Сейчас: " + choiceLine();
+    $("guest-who").textContent = animal().n;
+    document.title = "Показ: " + choiceLine() + " — Лаборатория здоровья";
+    document.body.setAttribute("data-animal", state.animal);
+    document.body.setAttribute("data-dog", state.dog ? "1" : "0");
+  }
+  function say(text, score) {
+    $("kicker").textContent = choiceLine();
     $("caption").textContent = text;
     var scoreEl = $("score");
     var story = $("story");
@@ -175,7 +193,7 @@
     var dx = (to.x - from.x) * 5.4;
     var dy = (to.y - from.y) * 6.4;
     var dist = Math.sqrt(dx * dx + dy * dy);
-    return Math.max(680, Math.round(dist / SPEED[who] * 1000));
+    return Math.max(520, Math.round(dist / SPEED[who] * 1000));
   }
   function posOf(el) {
     return { x: parseFloat(el.style.left), y: parseFloat(el.style.top) };
@@ -303,6 +321,7 @@
     guest.style.transition = "none";
     $("guest-img").src = "../img/scene/" + state.animal + ".svg";
     guest.setAttribute("aria-label", animal().n);
+    $("guest-who").textContent = animal().n;
     place(guest, PT.forest);
     face(guest, "left");
     dog.classList.remove("show", "walking", "idle");
@@ -343,11 +362,8 @@
     var a = animal();
     var withDog = state.dog;
     if (reduce) document.body.classList.add("demo-reduce");
-    say(
-      "Смотрите на тропинку",
-      a.n + " " + a.verb + " из леса и идёт к грядке с мятой." +
-        (withDog ? " Шарик выбегает из будки навстречу." : " Собаки нет — смотрите, что будет с одним пучком.")
-    );
+    say(a.n + " " + a.verb + " из леса и идёт к грядке с мятой." +
+        (withDog ? " Шарик выбегает из будки навстречу." : " Собаки нет — смотрите, что будет с одним пучком."));
     showActor(guest);
     var dogRun = null;
     if (withDog) {
@@ -363,11 +379,11 @@
     if (!(await walk(id, guest, PT.mid, a.id, "left"))) return;
     if (!(await walk(id, guest, PT.pause, a.id, "left"))) return;
     if (withDog) {
-      say("Смотрите на тропинку", a.n + " остановил" + (a.id === "fox" ? "ась" : "ся") + " перед огородом. Шарик бежит к калитке и заступает дорогу к мяте.");
+      say(a.n + " остановил" + (a.id === "fox" ? "ась" : "ся") + " перед огородом. Шарик бежит к калитке и заступает дорогу к мяте.");
       if (!(await dogRun)) return;
       if (state.lost) return;
       $("bark").classList.add("on");
-      say("Образец", "Шарик не пустил " + a.acc + " к мяте. Оба пучка на месте. " + a.n + " поворачивает в лес.", sampleSafe());
+      say("Шарик не пустил " + a.acc + " к мяте. Оба пучка на месте. " + a.n + " поворачивает в лес.", sampleSafe());
       if (!(await hold(id, reduce ? 900 : 1200))) return;
       $("bark").classList.remove("on");
       var backGuest = walk(id, guest, PT.mid, a.id, "right");
@@ -378,7 +394,7 @@
       if (!(await walk(id, guest, PT.forest, a.id, "right"))) return;
       hideActor(guest);
       if (!(await hold(id, reduce ? 200 : 420))) return;
-      say("Образец", "Шарик проводил " + a.acc + " до леса и возвращается к будке. Урожай цел.", sampleSafe());
+      say("Шарик проводил " + a.acc + " до леса и возвращается к будке. Урожай цел.", sampleSafe());
       if (!(await walk(id, dog, PT.lane, "dog", "right"))) return;
       if (!(await walk(id, dog, PT.side, "dog", "right"))) return;
       if (!(await walk(id, dog, PT.sideLow, "dog", "right"))) return;
@@ -386,20 +402,20 @@
       hideActor(dog);
       $("kennel").classList.remove("dog-out");
       if (state.lost) {
-        say("Ошибка показа", "С собакой мята не должна пропасть.", "");
+        say("С собакой мята не должна пропасть.", "");
       }
     } else {
-      say("Смотрите на тропинку", a.n + " идёт через калитку к мяте. Ромашка в стороне.");
+      say(a.n + " идёт через калитку к мяте. Ромашка в стороне.");
       if (!(await walk(id, guest, PT.lane, a.id, "left"))) return;
       if (!(await walk(id, guest, PT.block, a.id, "left"))) return;
       if (!(await walk(id, guest, PT.bed, a.id, "left"))) return;
       takePlant();
-      say("Образец", a.n + " берёт один пучок мяты. Второй остаётся на грядке. Пучок виден у зверя.", sampleLost());
+      say(a.n + " берёт один пучок мяты. Второй остаётся на грядке. Пучок виден у зверя.", sampleLost());
       if (!(await hold(id, reduce ? 900 : 1100))) return;
       if (!(await walk(id, guest, PT.block, a.id, "right"))) return;
       if (!(await walk(id, guest, PT.lane, a.id, "right"))) return;
       if (!(await walk(id, guest, PT.pause, a.id, "right"))) return;
-      say("Образец", a.n + " несёт мяту обратно в лес. На грядке следы и на один пучок меньше.", sampleLost());
+      say(a.n + " несёт мяту обратно в лес. На грядке следы и на один пучок меньше.", sampleLost());
       if (!(await walk(id, guest, PT.mid, a.id, "right"))) return;
       if (!(await walk(id, guest, PT.forest, a.id, "right"))) return;
       hideActor(guest);
@@ -424,7 +440,7 @@
       face(guest, "right");
       showActor(guest);
       seed([PT.forest, PT.mid, PT.lane, PT.block, PT.bed, PT.pause]);
-      say("Образец", a.n + " несёт один пучок мяты обратно в лес. До грядки собака не дошла — её нет. Второй пучок на месте.", sampleLost());
+      say(a.n + " несёт один пучок мяты обратно в лес. До грядки собака не дошла — её нет. Второй пучок на месте.", sampleLost());
     } else {
       state.dog = true;
       setKennel();
@@ -437,39 +453,58 @@
       showActor(dog);
       $("bark").classList.add("on");
       seed([PT.forest, PT.mid, PT.pause, PT.kennel, PT.sideLow, PT.side, PT.block]);
-      say("Образец", "Шарик заступил дорогу. " + a.n + " до мяты не дошл" + (a.id === "fox" ? "а" : "ёл") + ". Оба пучка целы.", sampleSafe());
+      say("Шарик заступил дорогу. " + a.n + " до мяты не дошл" + (a.id === "fox" ? "а" : "ёл") + ". Оба пучка целы.", sampleSafe());
     }
     document.body.setAttribute("data-pose", pose);
     document.body.setAttribute("data-lost", state.lost ? "1" : "0");
+    $("btn-fox").setAttribute("aria-pressed", state.animal === "fox" ? "true" : "false");
+    $("btn-hedgehog").setAttribute("aria-pressed", state.animal === "hedgehog" ? "true" : "false");
+    $("btn-dog-on").setAttribute("aria-pressed", state.dog ? "true" : "false");
+    $("btn-dog-off").setAttribute("aria-pressed", state.dog ? "false" : "true");
+    syncUrl(true);
     paintSaves();
   }
 
-  function press(animalId, dogOn) {
+  var demoToken = 0;
+  function press(animalId, dogOn, keepPose) {
     state.animal = animalId;
     state.dog = dogOn;
     $("btn-fox").setAttribute("aria-pressed", animalId === "fox" ? "true" : "false");
     $("btn-hedgehog").setAttribute("aria-pressed", animalId === "hedgehog" ? "true" : "false");
     $("btn-dog-on").setAttribute("aria-pressed", dogOn ? "true" : "false");
     $("btn-dog-off").setAttribute("aria-pressed", dogOn ? "false" : "true");
+    syncUrl(!!keepPose);
   }
 
-  $("btn-fox").addEventListener("click", function () { press("fox", state.dog); play(); });
-  $("btn-hedgehog").addEventListener("click", function () { press("hedgehog", state.dog); play(); });
-  $("btn-dog-on").addEventListener("click", function () { press(state.animal, true); play(); });
-  $("btn-dog-off").addEventListener("click", function () { press(state.animal, false); play(); });
-  $("replay").addEventListener("click", function () { play(); });
+  $("btn-fox").addEventListener("click", function () { demoToken++; press("fox", state.dog); play(); });
+  $("btn-hedgehog").addEventListener("click", function () { demoToken++; press("hedgehog", state.dog); play(); });
+  $("btn-dog-on").addEventListener("click", function () { demoToken++; press(state.animal, true); play(); });
+  $("btn-dog-off").addEventListener("click", function () { demoToken++; press(state.animal, false); play(); });
+  $("replay").addEventListener("click", function () { demoToken++; play(); });
+
+  async function demoBoth() {
+    var token = ++demoToken;
+    press("fox", true);
+    await play();
+    if (token !== demoToken) return;
+    await hold(runId, 700);
+    if (token !== demoToken) return;
+    press("hedgehog", false);
+    await play();
+  }
 
   if (reduce) document.body.classList.add("demo-reduce");
   drawPath();
-  press(state.animal, state.dog);
+  var pose = params.get("pose");
+  press(state.animal, state.dog, true);
   paintSaves();
 
-  var pose = params.get("pose");
   if (pose === "intercept" || pose === "carry") showPose(pose);
+  else if (params.get("demo") === "both") demoBoth();
   else if (params.get("play") !== "0") play();
   else {
     resetScene();
-    say("Смотрите на тропинку", "Нажмите «Показать ещё раз». " + animal().n + " выйдет из леса к мяте.");
+    say("Нажмите «Показать ещё раз». " + animal().n + " выйдет из леса к мяте.");
   }
 
   window.__DEMO = {

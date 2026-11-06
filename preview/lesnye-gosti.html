@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="../css/fonts.css">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/farm.css">
-  <link rel="stylesheet" href="lesnye-gosti.css?v=3">
+  <link rel="stylesheet" href="lesnye-gosti.css?v=4">
 </head>
 <body class="demo-body">
   <div class="bg" aria-hidden="true"></div>
@@ -24,6 +24,7 @@
     </header>
 
     <section class="demo-controls" aria-label="Управление показом">
+      <p id="now" class="demo-now">Сейчас: лиса · собака Шарик есть</p>
       <div class="demo-choice">
         <span class="demo-lab" id="lab-animal">Кто идёт из леса</span>
         <div class="demo-seg" role="group" aria-labelledby="lab-animal">
@@ -108,12 +109,14 @@
             <img class="body" id="guest-img" src="../img/scene/fox.svg" alt="">
             <img class="carry" id="carry" src="../img/plants/mint.svg" alt="">
           </div></div>
+          <span class="who" id="guest-who">Лиса</span>
           <span class="carry-tag">мята</span>
         </div>
         <div class="actor dog" id="dog" aria-hidden="true">
           <div class="bob"><div class="flip" id="dog-flip">
             <img class="body" src="../img/scene/dog-run.svg" alt="">
           </div></div>
+          <span class="who" id="dog-who">Шарик</span>
           <span class="bark" id="bark">Гав!</span>
         </div>
       </div>
@@ -130,7 +133,7 @@
         <li>Если Шарик есть, он выбегает из будки и встречает зверя раньше грядки. Оба пучка мяты остаются. Надпись «+3 монеты» — учебная, с пометкой «Образец».</li>
         <li>Если собаки нет, зверь берёт один пучок. Этот пучок видно у него по дороге обратно в лес. Второй пучок мяты и ромашка целы. Это учебная потеря, не ваша грядка.</li>
       </ol>
-      <p>В игре ёж зимой спит и не приходит. Здесь осень, поэтому он бодрствует. Собака в игре открывается позже и покупается в усадьбе. В показе её можно просто включить — это не покупка и не списание монет.</p>
+      <p>Кнопки сразу меняют адрес страницы. Строка «Сейчас» и табличка над зверем называют того же, кто нарисован. В игре ёж зимой спит. Здесь осень, поэтому он бодрствует. Включение Шарика в показе — не покупка и не списание монет.</p>
       <p>Если на телефоне или компьютере включено «Уменьшить движение», звери не бегут и картинка не мигает: они спокойно появляются на следующей точке тропинки. То же самое делает ссылка «Спокойный показ» ниже.</p>
       <h3>Готовые кадры</h3>
       <div class="demo-links">
@@ -151,6 +154,6 @@
     <p class="demo-game-link"><a class="btn btn-secondary btn-big" href="https://igra.orkestr.online/">Открыть игру</a></p>
     <footer class="signature">Лаборатория здоровья</footer>
   </main>
-  <script src="lesnye-gosti.js"></script>
+  <script src="lesnye-gosti.js?v=4"></script>
 </body>
 </html>
