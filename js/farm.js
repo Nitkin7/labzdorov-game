@@ -6,7 +6,7 @@
   var MIN = 60000;
   var MAX_BEDS = 12, RACK_SLOTS = 3, BATCH = 5, HONEY_EVERY = 20 * MIN, HONEY_MAX = 3;
   var $ = function (id) { return document.getElementById(id); };
-  var OLD_G = { can: "Огород", fastdry: "Амбар", rack2: "Амбар", beehive: "Двор", bench: "Двор", fence: "Двор", birdhouse: "Двор" };
+  var OLD_G = { can: "Огород", fastdry: "Амбар", rack2: "Амбар", rack3: "Амбар", beehive: "Двор", bench: "Двор", fence: "Двор", birdhouse: "Двор" };
   FD.upgrades.forEach(function (u) { u.g = u.g || OLD_G[u.id] || "Двор"; });
   if (FD.recipes2) { FD.recipes = FD.recipes.concat(FD.recipes2); FD.recipes2 = null; }
   if (FD.upgrades2) { FD.upgrades = FD.upgrades.concat(FD.upgrades2); FD.upgrades2 = null; }
@@ -391,7 +391,11 @@
 
   /* ---------- Сушилка ---------- */
   function dryDur(p) { return Math.max(0.5, p.t * 0.5) * MIN * (F.up.fastdry ? 0.6 : 1); }
-  function ensureRacks() { if (F.up.rack2 && F.racks.length < 2) F.racks.push([null, null, null]); }
+  var RACK_MAX = 3;
+  function ensureRacks() {
+    if ((F.up.rack2 || F.up.rack3) && F.racks.length < 2) F.racks.push([null, null, null]);
+    if (F.up.rack3 && F.racks.length < RACK_MAX) F.racks.push([null, null, null]);
+  }
   function slotState(s) { if (!s) return "empty"; return now() >= s.end ? "done" : "dry"; }
   function putDry(r, k, id) {
     var q = Math.min(BATCH, have("f:" + id)); if (!q) return;
@@ -521,8 +525,9 @@
     if (current() === "farm") renderFarm(); else renderUpgrades();
   }
   function buyUp(id) {
-    var u = U[id]; if (F.up[id]) return;
+    var u = U[id]; if (!u || F.up[id]) return;
     if (level() < u.lvl) return;
+    if (u.need && !F.up[u.need]) { L().toast("Сначала купите «" + U[u.need].n + "»."); return; }
     if (F.coins < u.price) { L().toast("Нужно " + coinsWord(u.price) + "."); return; }
     F.coins -= u.price; F.up[id] = true;
     if (id === "beehive") F.hiveAt = now();
@@ -530,7 +535,7 @@
     if (id === "helper") F.beds.forEach(function (b) { if (b && !b.water && b.end > now()) { b.end = now() + (b.end - now()) * (1 - (F.up.can ? 0.5 : 0.25)); b.water = true; } });
     ensureRacks(); save(); L().tone(true);
     L().toast("Куплено: " + u.n + "!");
-    renderUpgrades();
+    if (current() === "barn") renderBarn(); else renderUpgrades();
   }
 
   /* ---------- Ежедневное ---------- */
@@ -818,7 +823,7 @@
     var canCook = FD.recipes.some(function (r) { return recipeOpen(r) && canMake(r); });
     var setReady = FD.sets.some(function (x) { return !F.sets[x.id] && setProgress(x) >= x.items.length; });
     var sideN = Math.max(2, Math.floor(GH / 270)), SY = G + 30, slotH = (GH - 20) / sideN;
-    var left = [function (x, yb, w, h) { return scObj({ x: x, y: yb - h, w: w, h: h, H: H, img: "rack", label: "Сушилка", attrs: 'data-tab="barn" data-anchor="racks"', aria: "Сушилка трав" + (racksDone ? " — сушка готова, снять: " + racksDone : ""),
+    var left = [function (x, yb, w, h) { return scObj({ x: x, y: yb - h, w: w, h: h, H: H, img: "rack", label: "Сушилка", attrs: 'data-tab="barn" data-anchor="racks"', aria: "Сушилка трав, сушилок " + F.racks.length + " из " + RACK_MAX + (racksDone ? ", сушка готова, снять: " + racksDone : ""),
         badge: racksDone ? "Снять × " + racksDone : "", glow: !!racksDone, cls: "sc-rack" + (racksDone ? " ready" : ""), inner: rackNext ? '<span hidden data-end="' + rackNext + '"></span>' : "" }); },
       function (x, yb, w, h) { return scObj({ x: x, y: yb - h, w: w, h: h, H: H, img: "table", label: "Рецепты", attrs: 'data-tab="barn" data-anchor="recipes"', aria: "Стол рецептов" + (canCook ? " — можно приготовить" : ""), badge: canCook ? "Варить!" : "", glow: canCook, cls: "sc-table" }); }];
     var right = [function (x, yb, w, h) { return scObj({ x: x + 12, y: yb - h, w: w - 24, h: h, H: H, img: "board", label: "Цели", attrs: "data-goals", aria: "Доска — ближайшие цели", cls: "sc-board" }); },
@@ -1225,7 +1230,7 @@
     var lockedRecipes = FD.recipes.length - FD.recipes.filter(recipeOpen).length;
     $("barn-root").innerHTML = headerHTML() + hintHTML("barn") +
       '<h2 class="farm-title">Амбар</h2>' +
-      '<div class="card" id="racks"><h3 class="first">Сушилка</h3><p class="muted">Свежие травы сохнут здесь и потом стоят дороже.</p>' + racks + "</div>" +
+      '<div class="card" id="racks"><h3 class="first">Сушилка</h3><p class="muted">Свежие травы сохнут здесь и потом стоят дороже.</p>' + rackOfferHTML() + racks + "</div>" +
       '<div class="card" id="recipes"><h3 class="first">' + (F.up.bigtable ? "Большой стол рецептов" : "Стол рецептов") + '</h3><p class="muted">Чаи — из сушёных трав, варенье и морсы — из ягод и плодов сада и леса.</p>' + (recipes || "<p>Скоро здесь появятся рецепты.</p>") +
       (lockedRecipes ? '<p class="muted small">Ещё ' + lockedRecipes + " " + L().plural(lockedRecipes, "рецепт откроется", "рецепта откроются", "рецептов откроются") + " с новыми растениями.</p>" : "") + "</div>" +
       '<div class="card"><h3 class="first">Запасы</h3>' +
@@ -1233,6 +1238,19 @@
       storeRows("o:", "Плоды сада", "") + storeRows("w:", "Дары леса", "") + storeRows("h:", "Мёд пасеки", "") + storeRows("x:", "Воск и перга", "") +
       storeRows("t:", "Чаи, варенье и заготовки", "") + storeRows("honey", "Мёд", "") + "</div>" +
       '<p class="doctor-note">Названия чаёв — игровые. Перед применением трав посоветуйтесь с врачом.</p>';
+  }
+  function rackOfferHTML() {
+    ensureRacks();
+    var n = Math.min(F.racks.length, RACK_MAX);
+    var tail = n >= RACK_MAX ? " Это все сушилки — четвёртой нет." : "";
+    var offer = "";
+    var u3 = U.rack3;
+    if (!F.up.rack3 && F.up.rack2 && u3 && level() >= u3.lvl) {
+      var poor = F.coins < u3.price;
+      offer = '<button class="btn btn-primary btn-big" data-up="rack3"' + (poor ? " disabled" : "") + ">Купить третью сушилку · " + coin(u3.price) + "</button>" +
+        (poor ? '<p class="muted">Нужно ' + coinsWord(u3.price) + ". Сейчас монет не хватает — ничего не спишется.</p>" : "");
+    }
+    return '<p class="rack-count" id="rack-count">Сейчас сушилок: <b>' + n + " из " + RACK_MAX + "</b>." + tail + "</p>" + offer;
   }
   function itemIconColor(r) { var f = Object.keys(r.need)[0]; return r.col ? r.col : f === "honey" ? "#e8a92a" : (P[f].fl === "#ffffff" ? "#f2c230" : P[f].fl); }
   function firstEmptySlot() { var r = F.racks[0]; for (var k = 0; k < r.length; k++) if (!r[k]) return k; return -1; }
@@ -1288,6 +1306,7 @@
 
   function renderUpgrades() {
     if (!$("upgrades-root")) return;
+    ensureRacks();
     var lv = level(), bp = bedPrice();
     var areas = FD.areas.map(function (a) {
       var owned = F.areas[a.id], locked = lv < a.lvl;
@@ -1307,9 +1326,12 @@
       var list = FD.upgrades.filter(function (u) { return u.g === g; }).sort(function (a, b) { return a.lvl - b.lvl; });
       if (!list.length) return "";
       return '<h3 class="upg">' + g + "</h3>" + (g === "Огород" ? rows : "") + list.map(function (u) {
-        var owned = F.up[u.id], locked = lv < u.lvl;
-        return '<div class="row-item' + (locked ? " locked" : "") + (!owned && !locked ? " new" : "") + '">' + icon(u.icon, 56) + '<div class="row-text"><b>' + u.n + (u.decor ? ' <span class="tag">украшение</span>' : "") + "</b><span>" + u.d + "</span>" +
-          (locked ? '<span class="lock">Откроется на уровне ' + u.lvl + "</span>" : "") + "</div>" +
+        var owned = F.up[u.id], lvlLocked = lv < u.lvl, needLocked = !!(u.need && !F.up[u.need]);
+        var locked = lvlLocked || needLocked;
+        var extra = (u.id === "rack2" || u.id === "rack3") ? "<span>Сейчас сушилок: " + Math.min(F.racks.length, RACK_MAX) + " из " + RACK_MAX + "</span>" : "";
+        var note = lvlLocked ? '<span class="lock">Откроется на уровне ' + u.lvl + "</span>" : (needLocked ? '<span class="lock">Сначала купите «' + U[u.need].n + "»</span>" : "");
+        return '<div class="row-item' + (locked ? " locked" : "") + (!owned && !locked ? " new" : "") + '" data-upgrade="' + u.id + '">' + icon(u.icon, 56) + '<div class="row-text"><b>' + u.n + (u.decor ? ' <span class="tag">украшение</span>' : "") + "</b><span>" + u.d + "</span>" + extra +
+          note + "</div>" +
           (owned ? '<span class="owned">Куплено ✓</span>' : locked ? "" : '<button class="btn btn-primary btn-sm" data-up="' + u.id + '"' + (F.coins < u.price ? " disabled" : "") + ">Купить<small>" + coin(u.price) + "</small></button>") + "</div>";
       }).join("");
     }).join("");

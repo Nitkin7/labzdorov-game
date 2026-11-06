@@ -187,3 +187,91 @@ p{margin:.5em 0 .8em}
 .ins-small{display:block;margin-top:6px;font-size:.98rem;color:var(--muted,#6b6b5f)}
 .ins-link{margin-top:6px}
 .ins-url{background:#fff;border:2px dashed var(--gold);border-radius:12px;padding:10px 12px;font-weight:700;word-break:break-all;text-align:center;user-select:all;-webkit-user-select:all}
+
+/* ---------- Заставка ---------- */
+.splash{
+  position:fixed;inset:0;z-index:80;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:40px 28px 72px;background:
+    radial-gradient(ellipse 120% 70% at 50% 0%, rgba(228,238,214,.55) 0%, transparent 55%),
+    linear-gradient(180deg,#fbf8ef 0%, #f7f1e3 45%, #efe6cf 100%);
+  color:var(--text);
+}
+.splash[hidden]{display:none}
+.splash-decor{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.splash-leaf{position:absolute;opacity:.28}
+.splash-leaf-l{left:-28px;top:88px;width:140px}
+.splash-leaf-r{right:-36px;bottom:140px;width:160px}
+.splash-logo{
+  width:148px;height:148px;border-radius:50%;overflow:hidden;background:var(--green-dark);
+  box-shadow:var(--shadow), 0 0 0 4px rgba(196,154,60,.35);flex:none;
+}
+.splash-logo img{width:100%;height:100%;display:block}
+.splash-title{
+  font-family:var(--head);font-weight:700;font-size:1.85rem;line-height:1.2;color:var(--green-dark);
+  text-align:center;margin:22px 0 0;max-width:320px;
+}
+.splash .gold-line{margin:14px auto 0}
+.splash-tag{margin:14px 0 0;font-size:1.05rem;font-weight:600;color:#6b4a22;text-align:center}
+.splash-load{width:100%;max-width:280px;margin-top:48px}
+.splash-label{text-align:center;font-size:1rem;font-weight:700;color:var(--muted);margin:0 0 12px}
+.splash-bar{
+  height:14px;background:var(--cream-2);border-radius:999px;overflow:hidden;
+  border:1.5px solid rgba(196,154,60,.45);box-shadow:inset 0 1px 2px rgba(60,50,20,.06);
+}
+.splash-fill{
+  height:100%;width:0;border-radius:999px;
+  background:linear-gradient(90deg,var(--green-mid),var(--green));
+}
+.splash-pct{text-align:center;margin:10px 0 0;font-size:.9rem;font-weight:700;color:var(--gold-dark)}
+.splash-foot{
+  position:absolute;left:16px;right:16px;bottom:max(22px,env(safe-area-inset-bottom));
+  text-align:center;font-size:.82rem;color:var(--muted);font-weight:600;margin:0;
+}
+@media (prefers-reduced-motion:no-preference){
+  .splash.is-live{transition:opacity .28s ease}
+  .splash.is-live.splash-out{opacity:0}
+  .splash-logo,.splash-title,.splash .gold-line,.splash-tag,.splash-load,.splash-foot{
+    opacity:0;animation:splash-rise .7s ease forwards;
+  }
+  .splash-title{animation-delay:.08s}
+  .splash .gold-line{animation-delay:.14s}
+  .splash-tag{animation-delay:.18s}
+  .splash-load{animation-delay:.24s}
+  .splash-foot{animation-delay:.3s}
+  .splash-fill{transition:width .25s ease}
+}
+@keyframes splash-rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* ---------- Аватар и имя ---------- */
+.top-user{
+  display:flex;align-items:center;gap:12px;background:var(--card);border-radius:18px;
+  box-shadow:var(--shadow);border:1px solid rgba(196,154,60,.25);padding:10px 12px;margin:0 0 12px;
+}
+.avatar{
+  width:56px;height:56px;border-radius:50%;flex:none;overflow:hidden;
+  background:linear-gradient(145deg,#2e5b2b,#1f3d20);border:2.5px solid var(--gold);
+  box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;
+  color:#fbf6e9;font-family:var(--head);font-weight:700;font-size:1.25rem;
+}
+.avatar-lg{width:84px;height:84px;font-size:1.7rem;border-width:3px}
+.avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.avatar-fallback{display:flex;align-items:center;justify-content:center;width:100%;height:100%}
+.avatar-fallback svg{width:62%;height:62%;display:block}
+.user-text{min-width:0;flex:1}
+.user-hello{font-size:.85rem;font-weight:700;color:var(--muted);margin:0}
+.user-name{
+  font-family:var(--head);font-size:1.15rem;font-weight:700;color:var(--green-dark);
+  margin:0;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.user-name[hidden]{display:none}
+.user-chips{display:flex;gap:8px;margin-top:4px;flex-wrap:wrap}
+.chip{
+  background:var(--cream-2);border:1px solid rgba(196,154,60,.35);border-radius:999px;
+  padding:3px 10px;font-size:.78rem;font-weight:800;color:var(--green-dark);
+}
+.chip b{color:var(--gold-dark);font-family:var(--head);font-size:.95rem;margin-right:3px}
+.profile{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.profile .user-name{font-size:1.35rem}
+.user-meta{font-size:.88rem;font-weight:700;color:var(--gold-dark);margin:4px 0 0}
+.profile-stats{margin-top:4px}
+.profile-card .progress{margin-top:10px}

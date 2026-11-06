@@ -151,6 +151,42 @@
     setTimeout(function () { if (current === from && current !== "home") go("home", true); }, 350);
   }
 
+  /* ---------- Аватар: только на время сессии, в сохранение не пишем ---------- */
+  var AVATAR_ICON = '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="17" r="8" fill="currentColor"/><path d="M9 41c1.6-8 7-12 15-12s13.4 4 15 12" fill="currentColor"/></svg>';
+  var profileInfo = { status: "none", source: "", firstName: "", lastName: "", photo: "" };
+  function paintAvatar(id) {
+    var box = $(id); if (!box) return;
+    while (box.firstChild) box.removeChild(box.firstChild);
+    var letter = profileInfo.firstName ? profileInfo.firstName.charAt(0).toUpperCase() : "";
+    function fallback() {
+      if (box.querySelector(".avatar-fallback")) return;
+      var span = document.createElement("span");
+      span.className = "avatar-fallback";
+      if (letter) span.textContent = letter; else span.innerHTML = AVATAR_ICON;
+      box.appendChild(span);
+    }
+    box.setAttribute("data-profile-status", profileInfo.status || "none");
+    if (!profileInfo.photo) { fallback(); return; }
+    var img = document.createElement("img");
+    img.alt = "";
+    img.referrerPolicy = "no-referrer";
+    img.decoding = "async";
+    img.onerror = function () { if (img.parentNode) img.parentNode.removeChild(img); fallback(); };
+    img.src = profileInfo.photo;
+    box.appendChild(img);
+  }
+  function paintNames() {
+    var full = [profileInfo.firstName, profileInfo.lastName].filter(Boolean).join(" ");
+    ["home-name", "set-name"].forEach(function (id) {
+      var el = $(id); if (!el) return;
+      el.textContent = full; el.hidden = !full;
+    });
+  }
+  function applyProfile(info) {
+    if (info && typeof info === "object") profileInfo = info;
+    paintAvatar("home-avatar"); paintAvatar("set-avatar"); paintNames();
+  }
+
   /* ---------- Главная ---------- */
   function renderHome() {
     var lvl = levelOf(S.points), lo = levelFloor(lvl), hi = levelFloor(lvl + 1);
@@ -161,6 +197,13 @@
     var st = currentStreak();
     $("st-streak").textContent = st;
     $("st-streak-label").textContent = plural(st, "день", "дня", "дней") + " подряд";
+    $("chip-points").textContent = S.points;
+    $("chip-points-label").textContent = plural(S.points, "очко", "очка", "очков");
+    $("chip-level").textContent = lvl;
+    $("chip-streak").textContent = st;
+    $("chip-streak-label").textContent = plural(st, "день", "дня", "дней");
+    paintAvatar("home-avatar");
+    paintNames();
     $("st-level-title").textContent = "Уровень " + lvl + ": «" + levelName(lvl) + "»";
     $("st-progress-fill").style.width = pct + "%";
     $("st-progress").setAttribute("aria-valuenow", pct);
@@ -384,6 +427,19 @@
   function renderSettings() {
     document.querySelectorAll("[data-font]").forEach(function (b) { b.setAttribute("aria-checked", String(+b.getAttribute("data-font") === S.font)); });
     document.querySelectorAll("[data-sound]").forEach(function (b) { b.setAttribute("aria-checked", String(+b.getAttribute("data-sound") === S.sound)); });
+    var lvl = levelOf(S.points), lo = levelFloor(lvl), hi = levelFloor(lvl + 1);
+    var pct = Math.round((S.points - lo) / (hi - lo) * 100);
+    var st = currentStreak();
+    $("set-points").textContent = S.points;
+    $("set-points-label").textContent = plural(S.points, "очко", "очка", "очков");
+    $("set-level").textContent = lvl;
+    $("set-streak").textContent = st;
+    $("set-streak-label").textContent = plural(st, "день", "дня", "дней") + " подряд";
+    $("set-level-line").textContent = "Уровень " + lvl + " · «" + levelName(lvl) + "»";
+    $("set-progress-fill").style.width = pct + "%";
+    $("set-progress").setAttribute("aria-valuenow", String(pct));
+    paintAvatar("set-avatar");
+    paintNames();
   }
 
   /* ---------- Поделиться ---------- */
@@ -435,6 +491,7 @@
   lastState = history.state;
   show("home");
   if (window.Platform) Platform.init();
+  if (window.Platform && Platform.userInfo) Platform.userInfo().then(applyProfile, function () { applyProfile(null); });
 
   if ("serviceWorker" in navigator && location.protocol !== "file:") {
     window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });

@@ -99,6 +99,9 @@ h3.first{margin-top:0}
 
 /* Сушилка */
 .rack{margin:10px 0 4px}
+.rack-count{font-size:1.05rem;font-weight:700;color:var(--green-dark)}
+.rack-count b{font-size:1.15rem}
+#racks .btn-big{margin-top:4px}
 .rack-title{display:flex;align-items:center;gap:8px;color:var(--green-dark)}
 .slots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px}
 .slot{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:150px;padding:8px 4px;border-radius:16px;border:3px solid #a0703a;background:#f4ecd6;color:var(--green-dark);font:inherit;font-size:.85rem;font-weight:700;text-align:center;line-height:1.2;cursor:pointer}
