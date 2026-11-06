@@ -359,8 +359,6 @@
     gainXp(p.xp, msg);
     save(); L().tone(true); renderFarm();
     var el = document.querySelector('.bed[data-bed="' + i + '"]'); if (el) { el.classList.add("pop"); }
-    // мягкое разовое предложение установить игру — после первых урожаев, если не мешает другим окнам
-    if (F.harvested <= 5 && window.LZInstall) setTimeout(function () { if (current() === "farm") LZInstall.offer(); }, 3500);
   }
   function gainXp(x, msg) {
     var before = level(); F.xp += x; var after = level();

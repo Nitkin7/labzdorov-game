@@ -21,7 +21,6 @@ var ASSETS = [
   "./js/farm-data.js",
   "./js/farm-data2.js",
   "./js/farm.js",
-  "./js/install.js",
   "./js/platform.js",
   "./js/vk-init.js",
   "./js/vendor/vk-bridge.min.js",
