@@ -1,5 +1,5 @@
 /* Лаборатория здоровья — сервис-воркер: работа без интернета */
-var CACHE = "lz-game-v19";
+var CACHE = "lz-game-v20";
 var ASSETS = [
   "./",
   "./index.html",
@@ -21,7 +21,6 @@ var ASSETS = [
   "./js/farm-data.js",
   "./js/farm-data2.js",
   "./js/farm.js",
-  "./js/install.js",
   "./js/platform.js",
   "./js/vk-init.js",
   "./js/vendor/vk-bridge.min.js",

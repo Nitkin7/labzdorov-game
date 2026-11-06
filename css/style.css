@@ -164,30 +164,6 @@ p{margin:.5em 0 .8em}
 .btn-answer{flex-direction:column;gap:0}
 .btn-answer.correct::after{content:"верный ответ";display:block;font-weight:600;font-size:.85em}
 
-/* ---------- Установка игры ---------- */
-.install-box{margin:4px 0 16px}
-.install-box[hidden],[data-install-box][hidden]{display:none}
-.btn-install{background:linear-gradient(180deg,#3d7a37,#2e5b2b);color:#fff;border:3px solid var(--gold);min-height:72px;font-size:1.25rem;border-radius:20px;box-shadow:0 6px 16px rgba(31,61,32,.28)}
-.btn-install:hover{background:var(--green-dark)}
-.btn-install:active{transform:scale(.98)}
-.btn-install-ic{width:34px;height:34px;flex:none}
-.install-note{margin:8px 4px 0;text-align:center;color:var(--muted,#6b6b5f);font-size:.95rem;line-height:1.4}
-.ins{font-size:1.12rem;line-height:1.45}
-.ins-lead{font-size:1.15rem}
-.ins-warn{background:#fff7d6;border:2px solid var(--gold);border-radius:14px;padding:10px 12px}
-.ins-steps{list-style:none;margin:10px 0 6px;padding:0;text-align:left}
-.ins-step{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(196,154,60,.3)}
-.ins-step:last-child{border-bottom:0}
-.ins-n{flex:none;width:40px;height:40px;border-radius:50%;background:var(--green-dark);color:#fff;font-weight:800;font-size:1.2rem;display:flex;align-items:center;justify-content:center}
-.ins-ic{flex:none;width:56px;height:56px;background:#fff;border-radius:14px;padding:6px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
-.ins-ic.ins-inline{width:34px;height:34px;padding:3px;border-radius:9px;vertical-align:middle;display:inline-block;margin:0 2px}
-.ins-app{flex:none;width:56px;height:56px;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
-.ins.center .ins-app{width:84px;height:84px;border-radius:20px;margin:6px auto 4px;display:block}
-.ins-t b{color:var(--green-dark)}
-.ins-small{display:block;margin-top:6px;font-size:.98rem;color:var(--muted,#6b6b5f)}
-.ins-link{margin-top:6px}
-.ins-url{background:#fff;border:2px dashed var(--gold);border-radius:12px;padding:10px 12px;font-weight:700;word-break:break-all;text-align:center;user-select:all;-webkit-user-select:all}
-
 /* ---------- Заставка ---------- */
 .splash{
   position:fixed;inset:0;z-index:80;display:flex;flex-direction:column;align-items:center;justify-content:center;
