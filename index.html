@@ -20,8 +20,26 @@
 </head>
 <body>
   <div class="bg" aria-hidden="true"></div>
+  <div id="splash" class="splash is-live" role="status" aria-live="polite" aria-label="Готовим лабораторию">
+    <div class="splash-decor" aria-hidden="true">
+      <svg class="splash-leaf splash-leaf-l" viewBox="0 0 140 180"><path d="M20 160 C40 90 70 50 120 20 C110 80 80 120 40 160Z" fill="#7fae4a"/><path d="M10 140 C30 80 55 45 95 18 C88 70 60 105 28 140Z" fill="#4f7d2e"/></svg>
+      <svg class="splash-leaf splash-leaf-r" viewBox="0 0 160 200"><path d="M140 40 C100 70 70 120 50 180 C110 150 140 100 150 50Z" fill="#6c9c3c"/><path d="M155 70 C120 95 95 140 80 190 C130 165 155 120 160 80Z" fill="#4f7d2e"/></svg>
+    </div>
+    <div class="splash-logo"><img src="icons/icon.svg" alt="" width="148" height="148"></div>
+    <p class="splash-title">Лаборатория здоровья</p>
+    <div class="gold-line" aria-hidden="true"></div>
+    <p class="splash-tag">Полезно о здоровье каждый день</p>
+    <div class="splash-load">
+      <p class="splash-label" id="splash-label">Готовим лабораторию…</p>
+      <div class="splash-bar" id="splash-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="Готовим лабораторию">
+        <div class="splash-fill" id="splash-fill"></div>
+      </div>
+      <p class="splash-pct" id="splash-pct">0%</p>
+    </div>
+    <p class="splash-foot">🌿 Спокойная игра о здоровье и травах</p>
+  </div>
 
-  <main id="app" class="app">
+  <main id="app" class="app" aria-hidden="true">
 
     <!-- ГЛАВНАЯ -->
     <section id="screen-home" class="screen active" aria-labelledby="home-title">
@@ -31,6 +49,19 @@
         <div class="gold-line"></div>
         <p class="hero-sub">Полезно о здоровье каждый день</p>
       </header>
+
+      <div class="top-user" id="home-user">
+        <div class="avatar" id="home-avatar" aria-hidden="true"></div>
+        <div class="user-text">
+          <p class="user-hello" id="home-hello">Здравствуйте</p>
+          <p class="user-name" id="home-name" hidden></p>
+          <div class="user-chips">
+            <span class="chip"><b id="chip-points">0</b> <span id="chip-points-label">очков</span></span>
+            <span class="chip"><b id="chip-level">1</b> ур.</span>
+            <span class="chip"><b id="chip-streak">0</b> <span id="chip-streak-label">дней</span></span>
+          </div>
+        </div>
+      </div>
 
       <div class="card stats" aria-label="Ваши успехи">
         <div class="stat"><span class="stat-num" id="st-points">0</span><span class="stat-label">очков</span></div>
@@ -283,6 +314,22 @@
     <!-- НАСТРОЙКИ -->
     <section id="screen-settings" class="screen" aria-labelledby="set-title">
       <div class="topnav"><button class="btn-back" data-back>← На главную</button></div>
+      <div class="card profile-card">
+        <div class="profile">
+          <div class="avatar avatar-lg" id="set-avatar" aria-hidden="true"></div>
+          <div class="user-text">
+            <p class="user-hello">Ваш профиль</p>
+            <p class="user-name" id="set-name" hidden></p>
+            <p class="user-meta" id="set-level-line">Уровень 1</p>
+          </div>
+        </div>
+        <div class="stats profile-stats">
+          <div class="stat"><span class="stat-num" id="set-points">0</span><span class="stat-label" id="set-points-label">очков</span></div>
+          <div class="stat"><span class="stat-num" id="set-level">1</span><span class="stat-label">уровень</span></div>
+          <div class="stat"><span class="stat-num" id="set-streak">0</span><span class="stat-label" id="set-streak-label">дней подряд</span></div>
+        </div>
+        <div class="progress" id="set-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="progress-fill" id="set-progress-fill"></div></div>
+      </div>
       <div class="card">
         <h2 id="set-title">Настройки</h2>
         <div class="gold-line left"></div>
@@ -353,5 +400,6 @@
   <script src="js/words-data.js"></script>
   <script src="js/wordgame.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/splash.js"></script>
 </body>
 </html>

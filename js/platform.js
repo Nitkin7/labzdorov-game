@@ -22,6 +22,75 @@
 
   var name = detect();
 
+  function cleanName(s) {
+    return String(s || "").replace(/[\u0000-\u001F\u007F]/g, "").replace(/\s+/g, " ").trim().slice(0, 40);
+  }
+  function safePhoto(url, allowLocal) {
+    if (typeof url !== "string" || url.length > 800) return "";
+    if (/^https:\/\/[^\s<>"']+$/i.test(url)) return url;
+    if (allowLocal && /^icons\/[a-z0-9._-]+\.svg$/i.test(url)) return url;
+    return "";
+  }
+  function withTimeout(promise, ms) {
+    return new Promise(function (resolve, reject) {
+      var timer = setTimeout(function () { reject(new Error("timeout")); }, ms);
+      Promise.resolve(promise).then(function (v) { clearTimeout(timer); resolve(v); }, function (e) { clearTimeout(timer); reject(e); });
+    });
+  }
+  function emptyUser(status) {
+    return { status: status, source: "", firstName: "", lastName: "", photo: "" };
+  }
+  /* VKWebAppGetUserInfo есть и в ВК, и в единой платформе ОК (документация VK Bridge).
+     Без user_id возвращается текущий пользователь. Для ОК нужен use_local: true,
+     для ВК параметр не передаём. Токен, почта и телефон не запрашиваются. */
+  function bridgeReady(ms) {
+    if (window.vkBridge && typeof window.vkBridge.send === "function") return Promise.resolve(window.vkBridge);
+    return new Promise(function (resolve) {
+      var left = ms;
+      var timer = setInterval(function () {
+        left -= 40;
+        if (window.vkBridge && typeof window.vkBridge.send === "function") { clearInterval(timer); resolve(window.vkBridge); }
+        else if (left <= 0) { clearInterval(timer); resolve(null); }
+      }, 40);
+    });
+  }
+  function fromBridgeUser(u, source) {
+    if (!u || typeof u !== "object") return emptyUser("denied");
+    return {
+      status: "ok",
+      source: source,
+      firstName: cleanName(u.first_name),
+      lastName: cleanName(u.last_name),
+      photo: safePhoto(u.photo_200 || u.photo_100 || "")
+    };
+  }
+  function userInfo() {
+    var mock = window.__LZ_PROFILE_MOCK;
+    if (mock && typeof mock === "object") {
+      if (mock.mode === "fail") return Promise.resolve(emptyUser("denied"));
+      if (mock.mode === "timeout") return withTimeout(new Promise(function () {}), 1200).then(function () { return emptyUser("timeout"); }, function () { return emptyUser("timeout"); });
+      if (mock.mode === "ok" || mock.mode === "badphoto") {
+        return Promise.resolve({
+          status: "ok",
+          source: "mock",
+          firstName: cleanName(mock.first_name),
+          lastName: cleanName(mock.last_name),
+          photo: mock.mode === "badphoto" ? safePhoto("https://127.0.0.1:9/no-photo.png") : safePhoto(mock.photo || "", true)
+        });
+      }
+    }
+    if (name === "web") return Promise.resolve(emptyUser("none"));
+    var payload = name === "ok" ? { use_local: true } : {};
+    return bridgeReady(700).then(function (bridge) {
+      if (!bridge) return emptyUser("unavailable");
+      return withTimeout(bridge.send("VKWebAppGetUserInfo", payload), 1200).then(function (u) {
+        return fromBridgeUser(u, name);
+      }, function (err) {
+        return emptyUser(err && err.message === "timeout" ? "timeout" : "denied");
+      });
+    }).catch(function () { return emptyUser("denied"); });
+  }
+
   /* v13: проверка подписки убрана — игра открыта для всех. */
   var VK_APP_ID = 54875478;   // ID мини-приложения ВК
 
@@ -78,6 +147,7 @@
     share: function (text) { return adapters[name].share(text, groupUrl[name]); },
     saveProgress: function (state) { return adapters[name].saveProgress(state).catch(function () {}); },
     showAd: function () { return adapters[name].showAd(); },
+    userInfo: userInfo,
     /* v9: заготовка общей таблицы рекордов для «Тренировки памяти и внимания» (ВЫКЛЮЧЕНА).
        Сейчас результаты хранятся только на устройстве (lz_brain_v1).
        TODO ВК:  VK Bridge "VKWebAppShowLeaderBoardBox" / таблица рекордов через свой сервер.
