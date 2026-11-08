@@ -3,6 +3,10 @@
 .yard-row{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid rgba(196,154,60,.35)}
 .yard-row p{margin:.3em 0 .6em}
 .yard-pic{flex:none;display:block}
+.yard-building{width:96px;height:72px}
+.yard-nav{display:flex;gap:8px;margin:0 0 12px}
+.yard-nav button{flex:1;min-height:56px;border-radius:16px;border:2px solid var(--gold);background:#fffdf6;color:var(--green-dark);font-weight:800;font-size:1rem}
+.yard-nav button[aria-current="page"]{background:var(--green-dark);color:#fbf6e9}
 .yard-chips{display:flex;flex-wrap:wrap;gap:8px}
 .yard-chip{display:flex;align-items:center;gap:8px;text-align:left}
 .yard-album{display:flex;flex-direction:column;gap:8px;margin:8px 0 12px}

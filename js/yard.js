@@ -27,7 +27,9 @@
     if (q > 0) F().seen[key] = 1;
     if (s[key] <= 0) delete s[key];
   }
-  function freshYard() { return { v: 1, built: {}, bag: {}, craft: {}, placed: {}, guest: 0, fair: 0, quest: 0, questPaid: false, finds: 0, album: false }; }
+  function freshYard() {
+    return { v: 1, built: {}, bag: {}, craft: {}, placed: {}, guest: 0, fair: 0, egor: 0, autumn: 0, autumnPaid: false, round: 0, basket: [false, false, false], view: "story", quest: 0, questPaid: false, finds: 0, album: false };
+  }
   function ensure() {
     var f = F();
     if (!f.yard || f.yard.v !== 1) {
@@ -35,10 +37,17 @@
       f.yard = freshYard();
       if (born && level() >= 16) f.yard.quest = 1;
     }
-    if (!f.yard.bag) f.yard.bag = {};
-    if (!f.yard.built) f.yard.built = {};
-    if (!f.yard.craft) f.yard.craft = {};
-    if (!f.yard.placed) f.yard.placed = {};
+    var y = f.yard;
+    if (!y.bag) y.bag = {};
+    if (!y.built) y.built = {};
+    if (!y.craft) y.craft = {};
+    if (!y.placed) y.placed = {};
+    if (typeof y.egor !== "number") y.egor = 0;
+    if (typeof y.autumn !== "number") y.autumn = 0;
+    if (typeof y.autumnPaid !== "boolean") y.autumnPaid = false;
+    if (typeof y.round !== "number") y.round = 0;
+    if (!y.basket || y.basket.length !== 3) y.basket = [false, false, false];
+    if (y.view !== "story" && y.view !== "autumn" && y.view !== "basket") y.view = "story";
   }
   function building(id) { for (var i = 0; i < D.buildings.length; i++) if (D.buildings[i].id === id) return D.buildings[i]; }
   function variety(id) { for (var i = 0; i < D.varieties.length; i++) if (D.varieties[i].id === id) return D.varieties[i]; }
@@ -57,13 +66,17 @@
       '<ellipse cx="26" cy="30" rx="6" ry="10" transform="rotate(-72 26 30)" fill="' + petal + '" stroke="#1f3d20" stroke-width="1"/>' +
       "</svg>";
   }
-  function picHouse() {
-    return '<svg class="yard-pic" viewBox="0 0 80 64" width="72" height="58" aria-hidden="true"><path d="M6 30 L40 8 L74 30" fill="#2e5b2b"/><rect x="16" y="30" width="48" height="28" fill="#fbf6e9" stroke="#1f3d20" stroke-width="2"/><rect x="34" y="40" width="12" height="18" fill="#c49a3c"/></svg>';
+  function picBuilding(id) {
+    if (id === "workshop") return '<svg class="yard-pic yard-building" viewBox="0 0 96 72" width="96" height="72" aria-hidden="true"><path d="M8 32 L48 10 L88 32" fill="#8a5a32"/><rect x="16" y="32" width="64" height="32" fill="#f4ecd6" stroke="#1f3d20" stroke-width="2"/><rect x="22" y="40" width="22" height="16" fill="#c49a3c"/><path d="M58 50 H86 M72 36 V58" stroke="#1f3d20" stroke-width="3" stroke-linecap="round"/><path d="M60 38 L84 54" stroke="#2e5b2b" stroke-width="3"/></svg>';
+    if (id === "square") return '<svg class="yard-pic yard-building" viewBox="0 0 96 72" width="96" height="72" aria-hidden="true"><path d="M8 28 H88 L80 14 H16 Z" fill="#2e5b2b"/><path d="M8 28 H88 L80 14 H16 Z" fill="none" stroke="#c49a3c" stroke-width="3"/><rect x="20" y="28" width="56" height="28" fill="#fbf6e9" stroke="#1f3d20" stroke-width="2"/><path d="M28 48 H40 V56 H28 Z M56 48 H68 V56 H56 Z" fill="#c49a3c"/><circle cx="34" cy="42" r="4" fill="#e07a9a"/><circle cx="62" cy="42" r="4" fill="#f2c230"/></svg>';
+    return '<svg class="yard-pic yard-building" viewBox="0 0 96 72" width="96" height="72" aria-hidden="true"><path d="M8 32 L48 8 L88 32" fill="#2e5b2b"/><rect x="18" y="32" width="60" height="32" fill="#fbf6e9" stroke="#1f3d20" stroke-width="2"/><rect x="42" y="44" width="14" height="20" fill="#c49a3c"/><path d="M26 28 C26 18 34 16 34 26 M30 20 C34 8 46 12 40 24" fill="none" stroke="#4f7d2e" stroke-width="3"/><circle cx="70" cy="48" r="6" fill="#f4e7b0" stroke="#8a6a1f" stroke-width="2"/></svg>';
   }
+  function picHouse() { return picBuilding("house"); }
   function picItem(id) {
     if (id === "lantern") return '<svg class="yard-pic" viewBox="0 0 64 64" width="56" height="56" aria-hidden="true"><rect x="28" y="4" width="8" height="8" fill="#8a6a1f"/><rect x="18" y="14" width="28" height="34" rx="6" fill="#f4e7b0" stroke="#1f3d20" stroke-width="2"/><rect x="30" y="48" width="4" height="12" fill="#1f3d20"/></svg>';
     if (id === "bed") return '<svg class="yard-pic" viewBox="0 0 64 64" width="56" height="56" aria-hidden="true"><path d="M6 40 H58 V50 H6Z" fill="#8a5a32"/><circle cx="20" cy="30" r="8" fill="#f2c230"/><circle cx="34" cy="24" r="8" fill="#e07a9a"/><circle cx="46" cy="32" r="8" fill="#f7f3e4" stroke="#1f3d20"/></svg>';
     if (id === "garland") return '<svg class="yard-pic" viewBox="0 0 64 64" width="56" height="56" aria-hidden="true"><path d="M6 16 Q32 40 58 16" fill="none" stroke="#2e5b2b" stroke-width="3"/><circle cx="18" cy="24" r="5" fill="#c49a3c"/><circle cx="32" cy="32" r="5" fill="#f2c230"/><circle cx="46" cy="24" r="5" fill="#c49a3c"/></svg>';
+    if (id === "wreath") return '<svg class="yard-pic" viewBox="0 0 64 64" width="56" height="56" aria-hidden="true"><circle cx="32" cy="32" r="18" fill="none" stroke="#2e5b2b" stroke-width="8"/><circle cx="32" cy="14" r="4" fill="#c49a3c"/><circle cx="48" cy="28" r="3" fill="#e07a9a"/><circle cx="18" cy="40" r="3" fill="#f2c230"/></svg>';
     if (id === "skep") return '<svg class="yard-pic" viewBox="0 0 64 64" width="56" height="56" aria-hidden="true"><path d="M12 44 Q32 8 52 44 Z" fill="#e6c36a" stroke="#1f3d20" stroke-width="2"/><path d="M16 36 H48 M18 28 H46" stroke="#8a6a1f" stroke-width="2"/></svg>';
     return picHouse();
   }
@@ -189,8 +202,98 @@
       y.fair = 3; F().coins += 100; if (!y.craft.garland) y.craft.garland = true;
     }
     noteQuestGuest(); payQuest(); save();
-    toast(y.fair >= 3 ? "Марья Петровна довольна. +100 монет." : "Шаг принят. Следующий можно сделать когда удобно.");
+    toast(y.fair >= 3 ? "Марья Петровна благодарит. +100 монет." : "Шаг принят. Следующий можно сделать когда удобно.");
     show();
+  }
+  function giveEgor() {
+    ensure();
+    var y = F().yard;
+    if (y.egor >= 3) return;
+    if (y.egor === 0) {
+      if (haveOld("f:mint") >= 4) addOld("f:mint", -4);
+      else if (haveOld("d:mint") >= 2) addOld("d:mint", -2);
+      else { toast("Нужны 4 свежих пучка мяты или 2 сушёных. Ничего не списано."); return; }
+      y.egor = 1;
+    } else if (y.egor === 1) {
+      if (bag("m:cone") >= 1) addBag("m:cone", -1);
+      else if (bag("m:bloom") >= 1) addBag("m:bloom", -1);
+      else if (bag("m:bark") >= 2) addBag("m:bark", -2);
+      else { toast("Нужна шишка, луговой цвет или две бересты. Ничего не списано."); return; }
+      y.egor = 2;
+    } else {
+      if (haveOld("d:chamomile") >= 2) addOld("d:chamomile", -2);
+      else if (haveOld("t:sun") >= 1) addOld("t:sun", -1);
+      else { toast("Нужны 2 сушёных пучка ромашки или сбор «Солнечный». Ничего не списано."); return; }
+      y.egor = 3; F().coins += 70;
+    }
+    save();
+    toast(y.egor >= 3 ? "Дед Егор благодарит. +70 монет. Больше этой истории нет." : "Егор принял гостинцы. Следующий шаг подождёт.");
+    show();
+  }
+  function giveAutumn() {
+    ensure();
+    var y = F().yard;
+    if (!y.built.square || y.autumn >= 5) return;
+    var step = y.autumn, ok = false;
+    if (step === 0) {
+      if (haveOld("d:mint") >= 3) { addOld("d:mint", -3); ok = true; }
+      else if (haveOld("t:mintTea") >= 1) { addOld("t:mintTea", -1); ok = true; }
+    } else if (step === 1) {
+      var finds = bag("m:bark") + bag("m:cone") + bag("m:bloom");
+      if (finds >= 2) {
+        var left = 2, keys = ["m:bark", "m:cone", "m:bloom"], i;
+        for (i = 0; i < keys.length && left; i++) { var n = Math.min(left, bag(keys[i])); addBag(keys[i], -n); left -= n; }
+        ok = true;
+      } else if (haveOld("w:lingonberry") >= 3) { addOld("w:lingonberry", -3); ok = true; }
+    } else if (step === 2) {
+      if (haveOld("d:chamomile") >= 3) { addOld("d:chamomile", -3); ok = true; }
+      else if (haveOld("t:jamApple") >= 1) { addOld("t:jamApple", -1); ok = true; }
+    } else if (step === 3) {
+      if (haveOld("honey") >= 1) { addOld("honey", -1); ok = true; }
+      else if (haveOld("h:flower") >= 1) { addOld("h:flower", -1); ok = true; }
+      else if (haveOld("d:melissa") >= 2) { addOld("d:melissa", -2); ok = true; }
+    } else if (step === 4) {
+      if (bag("yt:lemon") >= 1) { addBag("yt:lemon", -1); ok = true; }
+      else if (haveOld("t:calm") >= 1) { addOld("t:calm", -1); ok = true; }
+    }
+    if (!ok) { toast("Для этого шага пока не хватает припасов. Ничего не списано."); return; }
+    y.autumn += 1;
+    if (y.autumn === 5 && !y.autumnPaid) {
+      y.autumnPaid = true; F().coins += 40; y.craft.wreath = true;
+      toast("Осенние заготовки собраны. +40 монет и венок. Повторно венок не выдаётся.");
+    } else toast("Шаг заготовок принят. Можно продолжить когда удобно.");
+    save(); show();
+  }
+  function basketList() {
+    var round = F().yard.round % 2;
+    if (round === 0) return [
+      { text: "Два сушёных пучка мяты.", alts: [{ key: "d:mint", q: 2 }] },
+      { text: "Одна береста или две шишки.", alts: [{ key: "m:bark", q: 1, bag: true }, { key: "m:cone", q: 2, bag: true }] },
+      { text: "Баночка мёда или два сушёных пучка мелиссы.", alts: [{ key: "honey", q: 1 }, { key: "h:flower", q: 1 }, { key: "d:melissa", q: 2 }] }
+    ];
+    return [
+      { text: "Два сушёных пучка ромашки.", alts: [{ key: "d:chamomile", q: 2 }] },
+      { text: "Луговой цвет или две бересты.", alts: [{ key: "m:bloom", q: 1, bag: true }, { key: "m:bark", q: 2, bag: true }] },
+      { text: "Мятный чай или три сушёных пучка мяты.", alts: [{ key: "t:mintTea", q: 1 }, { key: "d:mint", q: 3 }] }
+    ];
+  }
+  function altHave(alt) { return alt.bag ? bag(alt.key) : haveOld(alt.key); }
+  function altTake(alt) { if (alt.bag) addBag(alt.key, -alt.q); else addOld(alt.key, -alt.q); }
+  function giveBasket(index) {
+    ensure();
+    var y = F().yard;
+    if (y.fair < 3 || y.egor < 3) return;
+    if (index !== 0 && index !== 1 && index !== 2) return;
+    if (y.basket[index]) return;
+    var req = basketList()[index], i, hit = null;
+    for (i = 0; i < req.alts.length; i++) if (altHave(req.alts[i]) >= req.alts[i].q) { hit = req.alts[i]; break; }
+    if (!hit) { toast("Для этой просьбы не хватает припасов. Ничего не списано."); return; }
+    altTake(hit); y.basket[index] = true; F().coins += 15;
+    if (y.basket[0] && y.basket[1] && y.basket[2]) {
+      y.round += 1; y.basket = [false, false, false];
+      toast("Просьба принята. +15 монет. Круг закрыт, следующая корзина уже ждёт.");
+    } else toast("Просьба принята. +15 монет. Её нельзя сдать ещё раз в этом круге.");
+    save(); show();
   }
 
   function onGather() {
@@ -213,7 +316,8 @@
       if (!y.built[b.id]) return "Дальше: «" + b.n + "», уровень " + b.lvl + ", " + b.price + " монет.";
     }
     if (!y.album) return "Дальше: соберите набор «Чайный сад» в домике травника.";
-    if (y.fair < 3) return "Дальше: история Марьи Петровны на площади.";
+    if (y.fair < 3 || y.egor < 3) return "Дальше: истории на ярмарочной площади.";
+    if (!y.autumnPaid) return "Дальше: осенние заготовки на площади.";
     if (!y.questPaid) return "Дальше: тропинка усадьбы.";
     return "Усадьба живая. Можно ставить украшения и заваривать чай, когда захочется.";
   }
@@ -226,20 +330,21 @@
       var btn = own ? '<button class="btn btn-primary btn-big" data-tab="' + (b.id === "house" ? "herbalist" : b.id === "workshop" ? "workshop" : "square") + '">Войти</button>'
         : lock ? '<p class="lock">Откроется на уровне ' + b.lvl + '</p>'
         : '<button class="btn btn-primary btn-big" data-yard="buy:' + b.id + '"' + (F().coins < b.price ? " disabled" : "") + '>Построить · ' + b.price + " монет</button>";
-      return '<div class="yard-row">' + picHouse() + '<div><b>' + b.n + '</b><p>' + b.d + '</p>' + btn + '</div></div>';
+      return '<div class="yard-row">' + picBuilding(b.id) + '<div><b>' + b.n + '</b><p>' + b.d + '</p>' + btn + '</div></div>';
     }).join("");
     return '<div class="card yard-card"><h3 class="first">Усадьба</h3><p>' + nextGoal() + '</p>' + rows + decorRow() + '</div>';
   }
   function decorRow() {
-    var y = F().yard, ids = ["lantern", "bed", "garland"];
+    var y = F().yard, ids = ["lantern", "bed", "garland", "wreath"];
     var own = ids.filter(function (id) { return y.craft[id]; });
     if (!own.length && !y.craft.skep) return "";
+    var shown = own.filter(function (id) { return y.placed[id]; }).map(function (id) { var c = craft(id); return c ? c.n : "Венок"; });
     var bits = own.map(function (id) {
       var c = craft(id), on = y.placed[id];
-      return '<button class="btn btn-ghost yard-chip" data-yard="place:' + id + '">' + picItem(id) + '<span>' + (c ? c.n : "Гирлянда") + (on ? " · стоит" : " · поставить") + "</span></button>";
+      return '<button class="btn btn-ghost yard-chip" data-yard="place:' + id + '">' + picItem(id) + '<span>' + (c ? c.n : "Венок") + (on ? " · убрать" : " · поставить") + "</span></button>";
     }).join("");
     if (y.craft.skep) bits += '<span class="yard-chip">' + picItem("skep") + "<span>Колода Степана</span></span>";
-    return '<h3>Украшения двора</h3><div class="yard-chips">' + bits + "</div>";
+    return '<h3>Украшения двора</h3><p>' + (shown.length ? "Сейчас стоят: " + shown.join(", ") + "." : "Пока ничего не стоит. Нажмите «поставить».") + '</p><div class="yard-chips">' + bits + "</div>";
   }
 
   function screenHouse() {
@@ -259,7 +364,7 @@
         '<button class="btn btn-primary btn-big" data-yard="brew:' + t.id + '"' + (ok ? "" : " disabled") + ">Заварить</button></div></div>";
     }).join("");
     var album = albumCard();
-    return '<div class="card"><h2 class="farm-title">Домик травника</h2><p>Персонаж игры здесь не ставит диагнозов. Чай заваривают к столу.</p>' + vars + "</div>" +
+    return '<div class="card"><h2 class="farm-title">Домик травника</h2><p>Здесь сушат редкие сорта из теплицы и заваривают чай к столу.</p>' + vars + "</div>" +
       '<div class="card"><h3 class="first">Чаи домика</h3>' + teas + "</div>" + album;
   }
   function albumCard() {
@@ -296,37 +401,82 @@
     }).join("");
     return '<div class="card"><h2 class="farm-title">Мастерская</h2><p>Находки: ' + finds + ". Каждый третий поход в лес приносит одну.</p>" + rows + "</div>";
   }
+  function tabs() {
+    var y = F().yard, names = [["story", "Истории"], ["autumn", "Заготовки"], ["basket", "Корзина"]];
+    return '<div class="yard-nav" role="tablist" aria-label="Разделы площади">' + names.map(function (n) {
+      return '<button type="button" data-yard="view:' + n[0] + '"' + (y.view === n[0] ? ' aria-current="page"' : "") + ">" + n[1] + "</button>";
+    }).join("") + "</div>";
+  }
+  function storyPane() {
+    var y = F().yard;
+    var fairText = [
+      "Гостья Марья Петровна собирает стол. Принесите мятный чай или три сушёных пучка мяты.",
+      "Дальше покажите вещь из мастерской. Если её ещё нет, хватит двух берест.",
+      "Для стола нужен чай с лимонной мятой или чай «Уютный вечер».",
+      "История Марьи Петровны закончена. Награда уже выдана."
+    ][y.fair];
+    var egorText = [
+      "Дед Егор помогает накрывать стол. Ему нужны 4 свежих пучка мяты или 2 сушёных.",
+      "Потом он просит шишку, луговой цвет или две бересты.",
+      "В конце — 2 сушёных пучка ромашки или сбор «Солнечный».",
+      "История деда Егора закончена. Награда уже выдана."
+    ][y.egor];
+    return '<div class="card" id="yard-story"><h2 class="farm-title">Истории гостей</h2><p>Две короткие истории. Награда за каждую — один раз. Спешить не нужно.</p>' +
+      '<h3>Марья Петровна · шаг ' + Math.min(y.fair + 1, 3) + " из 3</h3><p>" + fairText + "</p>" +
+      (y.fair < 3 ? '<button class="btn btn-primary btn-big" data-yard="fair">Отдать шаг Марье</button>' : '<p class="ok-line">Марья Петровна больше не просит.</p>') +
+      '<h3>Дед Егор · шаг ' + Math.min(y.egor + 1, 3) + " из 3</h3><p>" + egorText + "</p>" +
+      (y.egor < 3 ? '<button class="btn btn-primary btn-big" data-yard="egor">Отдать шаг Егору</button>' : '<p class="ok-line">Дед Егор больше не просит.</p>') +
+      beeCard() + "</div>";
+  }
+  function autumnPane() {
+    var y = F().yard;
+    var lines = [
+      "Шаг 1 из 5. Три сушёных пучка мяты или один мятный чай.",
+      "Шаг 2 из 5. Две любые лесные находки или три горсти брусники.",
+      "Шаг 3 из 5. Три сушёных пучка ромашки или банка яблочного варенья.",
+      "Шаг 4 из 5. Баночка мёда или два сушёных пучка мелиссы.",
+      "Шаг 5 из 5. Чай с лимонной мятой или чай «Уютный вечер».",
+      "Все пять шагов сделаны."
+    ];
+    return '<div class="card" id="yard-autumn"><h2 class="farm-title">Осенние заготовки</h2><p>Это отдельное занятие на площади, не календарный срок. Шаги сохраняются. Венок даётся один раз.</p>' +
+      '<p><b>' + lines[Math.min(y.autumn, 5)] + "</b></p>" +
+      (y.autumn < 5 ? '<button class="btn btn-primary btn-big" data-yard="autumn">Отдать этот шаг</button>' : '<p class="ok-line">Венок «Осенний стол»' + (y.placed.wreath ? " стоит во дворе." : " можно поставить во дворе.") + "</p>") +
+      "</div>";
+  }
+  function basketPane() {
+    var y = F().yard;
+    if (y.fair < 3 || y.egor < 3) return '<div class="card" id="yard-basket"><h2 class="farm-title">Корзина гостей</h2><p>Она откроется, когда будут закончены истории Марьи Петровны и деда Егора.</p></div>';
+    var list = basketList();
+    var rows = list.map(function (req, i) {
+      return '<div class="yard-row"><div><b>Просьба ' + (i + 1) + "</b><p>" + req.text + "</p>" +
+        (y.basket[i] ? '<p class="ok-line">Уже принята в этом круге</p>' : '<button class="btn btn-primary btn-big" data-yard="basket:' + i + '">Отдать · 15 монет</button>') +
+        "</div></div>";
+    }).join("");
+    return '<div class="card" id="yard-basket"><h2 class="farm-title">Корзина гостей</h2><p>Круг ' + (y.round + 1) + ". Каждую просьбу принимают один раз за круг. Награда небольшая, меньше, чем если продать те же припасы в лавке. Срока нет.</p>" + rows + "</div>";
+  }
   function screenSquare() {
     ensure();
     var y = F().yard;
-    if (!y.built.square) return '<div class="card"><p>Площадь открывается на 16 уровне за 900 монет. Торопить некого: шаг не сгорает.</p><button class="btn btn-primary btn-big" data-tab="farm">К угодьям</button></div>';
-    var fairText = [
-      "Марья Петровна, персонаж игры, собирает стол. Принесите мятный чай или три сушёных пучка мяты.",
-      "Покажите вещь из мастерской. Если мастерской нет, хватит двух берест.",
-      "Для стола нужен чай с лимонной мятой или чай «Уютный вечер».",
-      "История закончена. Марья Петровна больше ничего не просит."
-    ][y.fair];
-    var bee = beeCard();
+    if (!y.built.square) return '<div class="card"><p>Площадь открывается на 16 уровне за 900 монет. Шаги никуда не денутся, если отложить.</p><button class="btn btn-primary btn-big" data-tab="farm">К угодьям</button></div>';
+    var pane = y.view === "autumn" ? autumnPane() : y.view === "basket" ? basketPane() : storyPane();
     var questText = [
       "Шаг 1. Постройте домик травника.",
-      "Шаг 2. Поставьте во дворе любое украшение мастерской.",
+      "Шаг 2. Поставьте во дворе любое украшение.",
       "Шаг 3. Доведите до конца историю Степана или Марьи Петровны.",
       y.questPaid ? "Тропинка пройдена." : "Тропинка почти пройдена."
     ][Math.min(y.quest, 3)];
-    return '<div class="card"><h2 class="farm-title">Ярмарочная площадь</h2><p>' + fairText + '</p>' +
-      (y.fair < 3 ? '<button class="btn btn-primary btn-big" data-yard="fair">Отдать шаг</button>' : '<p class="ok-line">История Марьи Петровны завершена.</p>') +
-      "</div>" + bee + '<div class="card"><h3 class="first">Тропинка усадьбы</h3><p>' + questText + "</p><p>Срока нет и штрафа за паузу нет.</p></div>";
+    return tabs() + pane + '<div class="card"><h3 class="first">Тропинка усадьбы</h3><p>' + questText + "</p><p>Это короткая цель двора, не история гостей и не заготовки.</p></div>";
   }
   function beeCard() {
     ensure();
     var y = F().yard;
     var text = [
-      "Пчеловод Степан, персонаж игры, просит одну баночку мёда: цветочного или из улья во дворе.",
+      "Пчеловод Степан просит одну баночку мёда: цветочного или из улья во дворе.",
       "Дальше ему нужен воск или три сушёных пучка мяты.",
       "Степан больше не просит. Колода остаётся у вас."
     ][Math.min(y.guest, 2)];
     return '<div class="card"><h3 class="first">Пчеловод Степан</h3><p>' + text + "</p>" +
-      (y.guest < 2 ? '<button class="btn btn-primary btn-big" data-yard="bee">Отдать</button>' : '<p class="ok-line">Просьбы закончились.</p>') + "</div>";
+      (y.guest < 2 ? '<button class="btn btn-primary btn-big" data-yard="bee">Отдать Степану</button>' : '<p class="ok-line">Просьбы закончились.</p>') + "</div>";
   }
 
   function show() { if (LZFarm.refresh) LZFarm.refresh(); }
@@ -370,6 +520,10 @@
     else if (act === "place") place(id);
     else if (act === "bee") giveBee();
     else if (act === "fair") giveFair();
+    else if (act === "egor") giveEgor();
+    else if (act === "autumn") giveAutumn();
+    else if (act === "basket") giveBasket(+id);
+    else if (act === "view") { ensure(); if (id === "story" || id === "autumn" || id === "basket") { F().yard.view = id; show(); } }
     else if (act === "album") claimAlbum();
   });
 
