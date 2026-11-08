@@ -21,7 +21,7 @@
   var EV = {}; FD.events.forEach(function (x) { EV[x.id] = x; });
   var SETS = {}; FD.sets.forEach(function (x) { SETS[x.id] = x; });
   var AREA_SCREENS = ["orchard", "apiary", "forest"];
-  var FARM_SCREENS = ["farm", "barn", "shop", "upgrades", "guide", "plant", "orchard", "apiary", "forest", "collection"];
+  var FARM_SCREENS = ["farm", "barn", "shop", "upgrades", "guide", "plant", "orchard", "apiary", "forest", "collection", "herbalist", "workshop", "square"];
 
   /* ---------- Состояние ---------- */
   function fresh() {
@@ -1378,7 +1378,8 @@
     document.body.classList.toggle("farm-mode", inFarm);
     closeSheet();
     document.querySelectorAll("#farm-nav [data-tab]").forEach(function (b) {
-      var t = b.getAttribute("data-tab"), on = t === name || ((name === "plant" || name === "guide") && t === "collection") || (AREA_SCREENS.indexOf(name) >= 0 && t === "farm");
+      var yardScreen = name === "herbalist" || name === "workshop" || name === "square";
+      var t = b.getAttribute("data-tab"), on = t === name || ((name === "plant" || name === "guide") && t === "collection") || (AREA_SCREENS.indexOf(name) >= 0 && t === "farm") || (yardScreen && t === "farm");
       b.classList.toggle("on", on); if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
       b.classList.toggle("pulse", !!(tutorialText() && tutorialText().target === "tab-" + t && name !== t));
     });
@@ -1394,6 +1395,7 @@
     if (name === "plant") renderPlant();
     if (name === "home") renderHomeCard();
     if (name === "tip") onTip();
+    if (window.LZYard) LZYard.onShow(name);
   }
   function navPulse() {
     var name = current();
@@ -1883,6 +1885,7 @@
     var w = W[id]; if (!F.areas.forest || w.lvl > level() || spotLeft(id) > 0) return;
     var q = w.q + (F.up.basket ? 1 : 0) + (inSeason(id) ? 1 : 0);
     add("w:" + id, q); F.forest[id] = now() + w.cd * MIN * speedFor(id, "forest");
+    if (window.LZYard) LZYard.onGather();
     F.st.forest++; track("forest");
     gainXp(w.xp, "В лукошке: " + w.n.toLowerCase() + " × " + q + ". +" + w.xp + " опыта");
     save(); L().tone(true); rerender();
@@ -2197,6 +2200,7 @@
   }
 
   window.LZFarm = {
+    refresh: function () { rerender(); if (window.LZYard) LZYard.onShow(current()); },
     closeSheet: function () { if ($("sheet").hidden) return false; closeSheet(); return true; },
     onShow: onShow, onQuizDone: onQuizDone, onBrain: onBrain, brainStatus: brainStatus, reset: reset, bind: bind,
     _state: function () { return F; }, _plantSVG: plantSVG, _plantImg: plantImg,
