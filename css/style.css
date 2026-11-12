@@ -27,7 +27,7 @@ html.fs-2{--fs:23px}
 html.fs-3{--fs:26px}
 
 *{box-sizing:border-box}
-html{font-size:var(--fs);-webkit-text-size-adjust:100%}
+html{font-size:var(--fs);-webkit-text-size-adjust:100%;scroll-padding-top:calc(env(safe-area-inset-top) + 92px)}
 body{margin:0;min-height:100vh;font-family:var(--body);font-size:1rem;line-height:1.5;color:var(--text);background:var(--cream);-webkit-tap-highlight-color:transparent}
 .bg{position:fixed;inset:0;z-index:-1;background:
   linear-gradient(180deg,rgba(251,246,233,.55) 0%,rgba(251,246,233,.82) 45%,rgba(251,246,233,.96) 100%),
@@ -103,9 +103,11 @@ p{margin:.5em 0 .8em}
 
 /* Вопрос */
 .question-card{text-align:center}
-.q-text{font-size:1.45rem;margin:.7em 0 .2em}
+.q-text{font-size:1.45rem;line-height:1.35;margin:.45em 0 .2em;overflow-wrap:anywhere;scroll-margin-top:calc(env(safe-area-inset-top) + 92px)}
+.riddle{scroll-margin-top:calc(env(safe-area-inset-top) + 92px)}
 .answers{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.btn-answer{min-height:76px;font-size:1.15rem}
+.btn-answer{min-height:76px;font-size:1.15rem;flex-direction:row;flex-wrap:nowrap;white-space:nowrap;gap:8px;padding:12px 14px}
+.ans-ic{flex:none;font-size:1.35rem;line-height:1}
 .btn-true{background:var(--green);color:#fff}
 .btn-false{background:#7a4a1c;color:#fff}
 .btn-answer[disabled]{opacity:.45;cursor:default}
@@ -160,9 +162,16 @@ p{margin:.5em 0 .8em}
   .menu-card .menu-img{width:150px;height:100px}
 }
 [tabindex="-1"]:focus{outline:none}
-.btn-answer.correct{opacity:1}
-.btn-answer{flex-direction:column;gap:0}
-.btn-answer.correct::after{content:"верный ответ";display:block;font-weight:600;font-size:.85em}
+.btn-answer.correct{opacity:1;flex-wrap:wrap}
+.btn-answer.correct::after{content:"верный ответ";flex:1 0 100%;font-weight:600;font-size:.85em}
+@media (max-width:420px){
+  .answers{grid-template-columns:1fr}
+  .q-text{font-size:1.32rem}
+}
+@media (max-height:700px){
+  .q-text{font-size:1.28rem;margin:.3em 0 .15em}
+  .question-card{padding:16px 14px}
+}
 
 /* ---------- Заставка ---------- */
 .splash{

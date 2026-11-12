@@ -108,6 +108,17 @@
     if (window.LZBrain) LZBrain.onShow(name);
     window.scrollTo(0, 0);
     var h = el.querySelector("h1, h2, .riddle"); if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: true }); }
+    requestAnimationFrame(function () { keepBelowBar(el); });
+  }
+  /* На iPhone липкая шапка с отрицательным отступом наезжает на текст. Сдвигаем карточку вниз, если она под шапкой. */
+  function keepBelowBar(screen) {
+    if (!screen) return;
+    var bar = screen.querySelector(":scope > .topnav");
+    var card = bar && bar.nextElementSibling;
+    if (!bar || !card) return;
+    card.style.marginTop = "";
+    var overlap = bar.getBoundingClientRect().bottom - card.getBoundingClientRect().top;
+    if (overlap > -6) card.style.marginTop = Math.ceil(overlap + 12) + "px";
   }
   function go(name, replace) {
     var d = (history.state && history.state.d) || 0;
@@ -270,6 +281,7 @@
     $("q-feedback").hidden = true;
     document.querySelectorAll(".btn-answer").forEach(function (b) { b.disabled = false; b.classList.remove("chosen", "correct"); });
     $("q-text").focus({ preventScroll: true });
+    requestAnimationFrame(function () { keepBelowBar($("screen-quiz")); });
   }
 
   function answer(val) {
