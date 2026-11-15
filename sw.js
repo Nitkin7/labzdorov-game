@@ -1,5 +1,5 @@
 /* Лаборатория здоровья — сервис-воркер: работа без интернета */
-var CACHE = "lz-game-v22";
+var CACHE = "lz-game-v23";
 var ASSETS = [
   "./",
   "./index.html",
@@ -68,7 +68,11 @@ self.addEventListener("activate", function (e) {
 
 self.addEventListener("fetch", function (e) {
   var req = e.request;
-  if (req.method !== "GET" || new URL(req.url).origin !== self.location.origin) return;
+  var url = new URL(req.url);
+  // Яндекс.Метрика (mc.yandex.ru и остальные хосты Яндекса) не перехватывается и не кэшируется.
+  // Запрос уходит в сеть как есть. Если Метрика недоступна, страница и офлайн-режим не ломаются.
+  if (url.hostname.indexOf("yandex") !== -1) return;
+  if (req.method !== "GET" || url.origin !== self.location.origin) return;
   // Страница: сначала сеть (свежая версия), при офлайне — кэш
   if (req.mode === "navigate") {
     e.respondWith(fetch(req).then(function (res) {
