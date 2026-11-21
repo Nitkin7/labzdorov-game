@@ -1,6 +1,6 @@
 /* Лаборатория здоровья — «Тренировка памяти и внимания».
    Витрина мини-игр (разминка для ума) и общее хранилище результатов.
-   Каждая игра — отдельный файл (js/schulte.js, js/wordgame.js; позже логические задачи, маджонг),
+   Каждая игра — отдельный файл (js/schulte.js, js/wordgame.js, js/mahjong.js; позже логические задачи),
    который регистрирует себя через LZBrain.register({...}).
    Результаты лежат в localStorage под своим ключом lz_brain_v1 и не трогают lz_game_v1 / lz_farm_v1. */
 (function () {
@@ -57,8 +57,8 @@
   var GAMES = [
     { id: "schulte", n: "Таблица Шульте", d: "Найдите числа по порядку — тренирует внимание и быстрый взгляд", soon: true },
     { id: "words", n: "Словодел", d: "Составляйте слова из букв одного длинного слова", soon: true },
-    { id: "logic", n: "Логические задачи", d: "Небольшие задачки на смекалку, без спешки", soon: true },
-    { id: "mahjong", n: "Маджонг", d: "Находите пары одинаковых костей", soon: true }
+    { id: "mahjong", n: "Маджонг", d: "Находите пары одинаковых костей", soon: true },
+    { id: "logic", n: "Логические задачи", d: "Небольшие задачки на смекалку, без спешки", soon: true }
   ];
   function find(id) { for (var i = 0; i < GAMES.length; i++) if (GAMES[i].id === id) return GAMES[i]; return null; }
   /* Игра сообщает о себе: { id, n, d, screen, status(), title(), onShow(name) } */
@@ -170,8 +170,8 @@
   function homeStatus() {
     var el = $("brain-status"); if (!el) return;
     var t = overallTitle(), b = null;
-    if (totalPlays()) b = "Звание: «" + (t ? t.name : RANKS[0]) + "» · Шульте, Словодел";
-    el.textContent = b || "Таблица Шульте, Словодел и другие разминки для ума";
+    if (totalPlays()) b = "Звание: «" + (t ? t.name : RANKS[0]) + "» · Шульте, Словодел, Маджонг";
+    el.textContent = b || "Таблица Шульте, Словодел, Маджонг и другие разминки";
   }
 
   function onShow(name) {
