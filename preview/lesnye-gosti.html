@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Лаборатория здоровья — показ: лиса и ёж</title>
+  <meta name="description" content="Учебный показ: лиса и ёж идут из леса к грядкам. На игру и сохранения не влияет.">
+  <meta name="theme-color" content="#1f3d20">
+  <link rel="icon" href="../icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../css/fonts.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/farm.css">
+  <link rel="stylesheet" href="lesnye-gosti.css?v=4">
+</head>
+<body class="demo-body">
+  <div class="bg" aria-hidden="true"></div>
+  <main class="app demo-app">
+    <header class="demo-hero">
+      <img class="demo-logo" src="../icons/icon.svg" alt="" width="64" height="64">
+      <h1>Лаборатория здоровья</h1>
+      <p class="demo-sub">Показ: лиса и ёж идут из леса к грядкам</p>
+      <p class="demo-pill">Образец · на игру не влияет</p>
+    </header>
+
+    <section class="demo-controls" aria-label="Управление показом">
+      <p id="now" class="demo-now">Сейчас: лиса · собака Шарик есть</p>
+      <div class="demo-choice">
+        <span class="demo-lab" id="lab-animal">Кто идёт из леса</span>
+        <div class="demo-seg" role="group" aria-labelledby="lab-animal">
+          <button type="button" id="btn-fox" data-animal="fox" aria-pressed="true">Лиса</button>
+          <button type="button" id="btn-hedgehog" data-animal="hedgehog" aria-pressed="false">Ёж</button>
+        </div>
+      </div>
+      <div class="demo-choice">
+        <span class="demo-lab" id="lab-dog">Собака у будки</span>
+        <div class="demo-seg" role="group" aria-labelledby="lab-dog">
+          <button type="button" id="btn-dog-on" data-dog="1" aria-pressed="true">Есть Шарик</button>
+          <button type="button" id="btn-dog-off" data-dog="0" aria-pressed="false">Нет собаки</button>
+        </div>
+      </div>
+      <button type="button" class="btn btn-primary btn-big" id="replay">Показать ещё раз</button>
+    </section>
+
+    <div id="story" class="demo-story" role="status" aria-live="polite">
+      <p class="demo-kicker" id="kicker">Смотрите на тропинку</p>
+      <p class="demo-caption" id="caption">Зверь выходит из леса сверху и идёт к грядке с мятой.</p>
+      <p class="demo-score" id="score" hidden></p>
+    </div>
+
+    <div class="scene sc-autumn demo-scene" id="scene">
+      <div class="sc-in" id="stage">
+        <div class="sc-bg" style="left:0;top:0;width:100%;height:58%"></div>
+        <div class="sc-tile" style="top:48%"></div>
+        <svg class="sc-path" id="demo-path" aria-hidden="true" preserveAspectRatio="none" focusable="false"></svg>
+
+        <div class="sc-zone sc-forest" style="left:0;top:0;width:100%;height:24%" aria-hidden="true">
+          <span class="demo-tree" style="left:0;top:2%;width:30%;height:88%"><img class="sc-img" src="../img/scene/tree-autumn.svg" alt=""></span>
+          <span class="demo-tree" style="left:16%;top:0;width:26%;height:72%"><img class="sc-img" src="../img/scene/tree-autumn.svg" alt=""></span>
+          <span class="demo-tree" style="left:58%;top:0;width:26%;height:74%"><img class="sc-img" src="../img/scene/tree-autumn.svg" alt=""></span>
+          <span class="demo-tree" style="left:72%;top:4%;width:28%;height:86%"><img class="sc-img" src="../img/scene/tree-autumn.svg" alt=""></span>
+          <span class="sc-sign">Лес</span>
+        </div>
+
+        <div class="sc-obj sc-house" style="left:1%;top:10%;width:22%;height:13%" aria-hidden="true">
+          <img class="sc-img" src="../img/scene/house.svg" alt="">
+          <span class="sc-label">Дом</span>
+        </div>
+        <div class="sc-obj sc-barn" style="left:74%;top:8%;width:24%;height:14%" aria-hidden="true">
+          <img class="sc-img" src="../img/scene/barn.svg" alt="">
+          <span class="sc-label">Амбар</span>
+        </div>
+
+        <div class="sc-garden" style="left:4%;top:56%;width:64%;height:20%" aria-hidden="true"></div>
+        <div class="sc-fence" style="left:2%;top:52%;width:20%;height:6%" aria-hidden="true"><img class="sc-img" src="../img/scene/fence.svg" alt=""></div>
+        <div class="sc-sign sc-gsign" style="left:28%;top:51%;width:40%;height:6%">Аптекарский огород</div>
+
+        <div class="beds sc-beds" id="beds" style="left:4%;top:57%;width:64%;height:18%">
+          <div class="bed sc-bed ready" id="bed-mint" style="left:1%;top:0;width:47%;height:100%" role="img" aria-label="Грядка мяты: два пучка">
+            <span class="sc-glow" aria-hidden="true"></span>
+            <img class="sc-img sc-soil" src="../img/scene/bed.svg" alt="">
+            <span class="bed-plant mint-plant" id="mint-plant">
+              <span class="pimg sprig" id="sprig-1"><img src="../img/plants/mint.svg" alt=""></span>
+              <span class="pimg sprig" id="sprig-2"><img src="../img/plants/mint.svg" alt=""></span>
+            </span>
+            <span class="bed-name">Мята</span>
+            <span class="bed-label harvest" id="mint-label">Собрать!</span>
+            <span class="sc-bit" id="paw" hidden>🐾</span>
+          </div>
+          <div class="bed sc-bed ready" id="bed-cham" style="left:52%;top:0;width:47%;height:100%" role="img" aria-label="Грядка ромашки, цела">
+            <span class="sc-glow" aria-hidden="true"></span>
+            <img class="sc-img sc-soil" src="../img/scene/bed.svg" alt="">
+            <span class="bed-plant"><span class="pimg"><img src="../img/plants/chamomile.svg" alt=""></span></span>
+            <span class="bed-name">Ромашка</span>
+            <span class="bed-label harvest">Цела</span>
+          </div>
+        </div>
+        <div class="sc-fence" style="left:4%;top:74%;width:64%;height:5%" aria-hidden="true"><img class="sc-img" src="../img/scene/fence.svg" alt=""></div>
+
+        <div class="sc-obj sc-kennel" id="kennel" style="left:54%;top:78%;width:32%;height:19%" role="img" aria-label="Будка, Шарик">
+          <span class="sc-kpic"><img class="sc-img" id="kennel-pic" src="../img/scene/kennel.svg" alt=""></span>
+          <span class="sc-dog" id="kennel-dog"><img class="sc-img" src="../img/scene/dog.svg" alt=""></span>
+          <span class="sc-label" id="kennel-label">Шарик</span>
+        </div>
+
+        <div id="prints" aria-hidden="true"></div>
+        <div class="actor fox" id="guest" aria-hidden="true">
+          <div class="bob"><div class="flip" id="guest-flip">
+            <img class="body" id="guest-img" src="../img/scene/fox.svg" alt="">
+            <img class="carry" id="carry" src="../img/plants/mint.svg" alt="">
+          </div></div>
+          <span class="who" id="guest-who">Лиса</span>
+          <span class="carry-tag">мята</span>
+        </div>
+        <div class="actor dog" id="dog" aria-hidden="true">
+          <div class="bob"><div class="flip" id="dog-flip">
+            <img class="body" src="../img/scene/dog-run.svg" alt="">
+          </div></div>
+          <span class="who" id="dog-who">Шарик</span>
+          <span class="bark" id="bark">Гав!</span>
+        </div>
+      </div>
+    </div>
+    <p class="demo-sr" id="scene-desc">Осенняя усадьба для показа: сверху лес, по середине тропинка, две грядки — мята и ромашка, внизу будка.</p>
+
+    <section class="card demo-help" id="help">
+      <h2>Как смотреть</h2>
+      <ol>
+        <li>Нажмите «Лиса» или «Ёж».</li>
+        <li>Нажмите «Есть Шарик» или «Нет собаки».</li>
+        <li>Показ начинается сам. Кнопка «Показать ещё раз» повторяет его с начала.</li>
+        <li>Следите за тропинкой сверху вниз: зверь выходит из леса и идёт к мяте. Следы остаются на дорожке.</li>
+        <li>Если Шарик есть, он выбегает из будки и встречает зверя раньше грядки. Оба пучка мяты остаются. Надпись «+3 монеты» — учебная, с пометкой «Образец».</li>
+        <li>Если собаки нет, зверь берёт один пучок. Этот пучок видно у него по дороге обратно в лес. Второй пучок мяты и ромашка целы. Это учебная потеря, не ваша грядка.</li>
+      </ol>
+      <p>Кнопки сразу меняют адрес страницы. Строка «Сейчас» и табличка над зверем называют того же, кто нарисован. В игре ёж зимой спит. Здесь осень, поэтому он бодрствует. Включение Шарика в показе — не покупка и не списание монет.</p>
+      <p>Если на телефоне или компьютере включено «Уменьшить движение», звери не бегут и картинка не мигает: они спокойно появляются на следующей точке тропинки. То же самое делает ссылка «Спокойный показ» ниже.</p>
+      <h3>Готовые кадры</h3>
+      <div class="demo-links">
+        <a href="?animal=fox&amp;dog=1&amp;pose=intercept">Лиса и Шарик — урожай цел</a>
+        <a href="?animal=hedgehog&amp;dog=0&amp;pose=carry">Ёж без собаки — уносит мяту</a>
+        <a href="?animal=fox&amp;dog=1">Лиса и Шарик — весь показ</a>
+        <a href="?animal=hedgehog&amp;dog=0">Ёж без собаки — весь показ</a>
+        <a href="?animal=fox&amp;dog=1&amp;reduce=1">Спокойный показ без бега</a>
+      </div>
+    </section>
+
+    <section class="card save-card" id="save-card">
+      <h2>Сохранения игры</h2>
+      <p id="save-line">Проверяем…</p>
+      <p class="muted">Эта страница не открывает огород и не записывает монеты, грядки и опыт. Счёт в показе — образец.</p>
+    </section>
+
+    <p class="demo-game-link"><a class="btn btn-secondary btn-big" href="https://igra.orkestr.online/">Открыть игру</a></p>
+    <footer class="signature">Лаборатория здоровья</footer>
+  </main>
+  <script src="lesnye-gosti.js?v=4"></script>
+</body>
+</html>
