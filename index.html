@@ -106,7 +106,7 @@
           <span class="menu-text">
             <span class="pill pill-gold">Новое</span>
             <span class="menu-title">Тренировка памяти и внимания</span>
-            <span class="menu-desc" id="brain-status">Таблица Шульте, Словодел и другие разминки для ума</span>
+            <span class="menu-desc" id="brain-status">Таблица Шульте, Словодел, Маджонг и другие разминки</span>
           </span>
         </button>
         <button class="menu-card" data-go="quiz-intro">
@@ -319,6 +319,20 @@
       <div id="words-result-root"></div>
     </section>
 
+    <!-- МАДЖОНГ (js/mahjong.js) -->
+    <section id="screen-mahjong-intro" class="screen" aria-labelledby="mj-intro-title">
+      <div class="topnav"><button class="btn-back" data-brain-back="brain">← Ко всем играм</button></div>
+      <div id="mahjong-intro-root"></div>
+    </section>
+    <section id="screen-mahjong" class="screen" aria-label="Маджонг">
+      <div class="topnav"><button class="btn-back" data-brain-back="mahjong-intro">← Назад</button></div>
+      <div id="mahjong-root"></div>
+    </section>
+    <section id="screen-mahjong-result" class="screen" aria-labelledby="mj-res-title">
+      <div class="topnav"><button class="btn-back" data-brain-back="mahjong-intro">← Назад</button></div>
+      <div id="mahjong-result-root"></div>
+    </section>
+
     <!-- СОВЕТ ДНЯ -->
     <section id="screen-tip" class="screen" aria-labelledby="tip-title">
       <div class="topnav"><button class="btn-back" data-back>← На главную</button></div>
@@ -418,6 +432,7 @@
   <script src="js/schulte.js"></script>
   <script src="js/words-data.js"></script>
   <script src="js/wordgame.js"></script>
+  <script src="js/mahjong.js"></script>
   <script src="js/app.js"></script>
   <script src="js/splash.js"></script>
 </body>

@@ -560,13 +560,20 @@
   }
 
   /* v9: «Тренировка памяти и внимания» — скромный бонус раз в день за каждый размер таблицы.
-     v10: «Словодел» — +15 монет раз в день за первый пройденный раунд (свой ключ "words"). */
-  var BRAIN_COINS = { "3": 10, "4": 15, "5": 20, "words": 15 };
-  function brainKey(game, variant) { return game === "words" ? "words" : String(variant); }
+     v10: «Словодел» — +15 монет раз в день за первый пройденный раунд (свой ключ "words").
+     Маджонг — тот же порядок сумм, отдельные ключи mj0/mj1/mj2, чтобы не задеть Шульте. */
+  var BRAIN_COINS = { "3": 10, "4": 15, "5": 20, "words": 15, "mj0": 10, "mj1": 15, "mj2": 20 };
+  function brainKey(game, variant) {
+    if (game === "words") return "words";
+    if (game === "mahjong") return "mj" + variant;
+    return String(variant);
+  }
   function onBrain(game, variant) {
     var today = L().dayKey(), v = brainKey(game, variant), coins = 0, already = false;
     F.st.brain = (F.st.brain || 0) + 1;
-    if (game === "words") { F.st.words = (F.st.words || 0) + 1; track("words"); } else track("brain");
+    if (game === "words") { F.st.words = (F.st.words || 0) + 1; track("words"); }
+    else if (game === "mahjong") { F.st.mahjong = (F.st.mahjong || 0) + 1; }
+    else track("brain");
     if (BRAIN_COINS[v]) {
       if (F.brainDay[v] === today) already = true;
       else { F.brainDay[v] = today; coins = BRAIN_COINS[v]; F.coins += coins; }
@@ -579,6 +586,10 @@
   function brainStatus(size) {
     var today = L().dayKey();
     if (size === "words") return F.brainDay.words === today ? "Бонус огорода за Словодел сегодня получен ✓" : "За первый пройденный раунд сегодня: +" + coinsWord(BRAIN_COINS.words) + " в огород";
+    if (size != null && String(size).indexOf("mj") === 0) {
+      var mk = String(size), mn = mk === "mj0" ? "лёгкий" : mk === "mj1" ? "средний" : "сложный";
+      return F.brainDay[mk] === today ? "Бонус огорода за этот расклад сегодня получен ✓" : "За первую игру сегодня (" + mn + "): +" + coinsWord(BRAIN_COINS[mk]) + " в огород";
+    }
     if (size != null) { var v = String(size); return F.brainDay[v] === today ? "Бонус огорода за этот размер сегодня получен ✓" : "За первую игру сегодня: +" + coinsWord(BRAIN_COINS[v]) + " в огород"; }
     var left = brainLeft();
     return left ? "Бонус огорода сегодня: до +" + coinsWord(left) : "Бонус дня получен ✓";
