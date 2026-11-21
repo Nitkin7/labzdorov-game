@@ -48,9 +48,9 @@
   TILES.forEach(function (t) { BY_TYPE[t.id] = t; });
 
   var LEVELS = [
-    { id: 0, n: "Лёгкий", about: "24 кости, два слоя", base: 30 },
-    { id: 1, n: "Средний", about: "48 костей, три слоя", base: 50 },
-    { id: 2, n: "Сложный", about: "72 кости, три слоя", base: 80 }
+    { id: 0, n: "Лёгкий", about: "24 кости", base: 30 },
+    { id: 1, n: "Средний", about: "48 костей", base: 50 },
+    { id: 2, n: "Сложный", about: "72 кости", base: 80 }
   ];
 
   /* ---------- Расклад: прямоугольники, верхние слои по центру ---------- */
@@ -64,17 +64,20 @@
     base.forEach(function (p) { if (p.x + 2 > maxX) maxX = p.x + 2; if (p.y + 2 > maxY) maxY = p.y + 2; });
     return rect(z, Math.round((maxX - cols * 2) / 2), Math.round((maxY - rows * 2) / 2), cols, rows);
   }
+  /* Узкий след: 4 столбца, чтобы на телефоне 360px кости оставались крупными.
+     Лишние кости — новыми слоями, а не новыми рядами. */
   function layoutOf(level) {
-    if (level === 1) {
-      var mid = rect(0, 0, 0, 6, 6);
-      return mid.concat(centerOn(mid, 1, 4, 2), centerOn(mid, 2, 2, 2));
-    }
+    var base = rect(0, 0, 0, 4, 4);
+    if (level === 1) return base.concat(rect(1, 0, 0, 4, 4), rect(2, 0, 0, 4, 4));
     if (level === 2) {
-      var hard = rect(0, 0, 0, 6, 8);
-      return hard.concat(centerOn(hard, 1, 4, 4), centerOn(hard, 2, 2, 4));
+      return base.concat(
+        rect(1, 0, 0, 4, 4),
+        rect(2, 0, 0, 4, 4),
+        rect(3, 0, 0, 4, 4),
+        centerOn(base, 4, 4, 2)
+      );
     }
-    var easy = rect(0, 0, 0, 4, 5);
-    return easy.concat(centerOn(easy, 1, 2, 2));
+    return base.concat(centerOn(base, 1, 4, 2));
   }
 
   function overlaps(a, b) {
@@ -289,26 +292,33 @@
     renderPlay();
     startTimer();
   }
-  function metrics(list) {
-    var root = $("mahjong-root");
+  function bounds(list) {
     var maxX = 2, maxY = 2, maxZ = 0;
     list.forEach(function (t) {
       if (t.x + 2 > maxX) maxX = t.x + 2;
       if (t.y + 2 > maxY) maxY = t.y + 2;
       if (t.z > maxZ) maxZ = t.z;
     });
-    var avail = root && root.clientWidth ? root.clientWidth : Math.min(window.innerWidth - 32, 608);
-    if (avail < 260) avail = Math.min(window.innerWidth - 32, 608);
-    var cols = maxX / 2;
-    var tw = Math.floor((avail - 16) / (cols + maxZ * 0.22));
-    tw = Math.max(54, Math.min(tw, 78));
-    var th = Math.round(tw * 1.28);
-    return { tw: tw, th: th, sx: Math.round(tw * 0.14), sy: Math.round(th * 0.16) };
+    return { cols: maxX / 2, rows: maxY / 2, maxZ: maxZ };
   }
-  function renderPlay() {
-    var root = $("mahjong-root"); if (!root || !G) return;
-    var list = alive();
-    var m = metrics(list);
+  /* Кости масштабируются под свободное место: и в ширину, и в высоту, без прокрутки. */
+  function metrics(list, availW, availH) {
+    var b = bounds(list);
+    var sxR = 0.3, syR = 0.18, ratio = 1.14;
+    availW = Math.max(80, availW - 4);
+    availH = Math.max(80, availH - 4);
+    var tw = availW / (b.cols + b.maxZ * sxR);
+    var th = availH / (b.rows + b.maxZ * syR);
+    if (th / tw > ratio) th = tw * ratio;
+    else tw = th / ratio;
+    var boardW = b.cols * tw + b.maxZ * tw * sxR;
+    var boardH = b.rows * th + b.maxZ * th * syR;
+    var fit = Math.min(1, availW / boardW, availH / boardH);
+    tw *= fit; th *= fit;
+    if (tw > 104) { var k = 104 / tw; tw = 104; th *= k; }
+    return { tw: tw, th: th, sx: tw * sxR, sy: th * syR, showLabel: tw >= 46 };
+  }
+  function boardHTML(list, m) {
     var minL = 0, minT = 0, maxL = 0, maxT = 0;
     list.forEach(function (t) {
       var left = t.x * (m.tw / 2) + t.z * m.sx;
@@ -318,35 +328,44 @@
       if (left + m.tw > maxL) maxL = left + m.tw;
       if (top + m.th > maxT) maxT = top + m.th;
     });
-    var padL = Math.ceil(-minL + 10), padT = Math.ceil(-minT + 12);
-    var bw = Math.ceil(maxL + padL + 14), bh = Math.ceil(maxT + padT + 16);
+    var padL = Math.ceil(-minL + 2), padT = Math.ceil(-minT + 2);
+    var bw = Math.ceil(maxL + padL + 4), bh = Math.ceil(maxT + padT + 4);
+    var maxZ = 0;
+    list.forEach(function (t) { if (t.z > maxZ) maxZ = t.z; });
+    return '<div class="mj-board' + (m.showLabel ? "" : " mj-nolabel") + '" id="mj-board" style="width:' + bw + "px;height:" + bh + 'px">' +
+      list.map(function (t) {
+        var info = BY_TYPE[t.type];
+        var left = t.x * (m.tw / 2) + t.z * m.sx + padL;
+        var top = t.y * (m.th / 2) - t.z * m.sy + padT;
+        var free = isFree(t, list);
+        var cls = "mj-tile" + (free ? " is-free" : " is-locked") + (t.z > 0 ? " is-raised" : "") + (t.z === maxZ && t.z > 0 ? " is-top" : "") +
+          (G.sel === t.id ? " is-sel" : "") + (G.hint.indexOf(t.id) >= 0 ? " is-hint" : "");
+        var z = t.z * 30 + t.y + (G.hint.indexOf(t.id) >= 0 ? 200 : 0);
+        var name = m.showLabel ? '<span class="mj-name">' + esc(info.n) + "</span>" : "";
+        return '<button type="button" class="' + cls + '" data-mj-id="' + t.id + '" style="width:' + m.tw.toFixed(1) + "px;height:" + m.th.toFixed(1) + "px;left:" + left.toFixed(1) + "px;top:" + top.toFixed(1) + "px;z-index:" + z + '" aria-label="' + esc(info.n) + (free ? ", свободна" : ", закрыта") + '">' +
+          '<span class="mj-ico">' + info.svg + "</span>" + name + "</button>";
+      }).join("") + "</div>";
+  }
+  function renderPlay() {
+    var root = $("mahjong-root"); if (!root || !G) return;
+    var list = alive();
     var stuck = list.length && !freePairs().length;
-    var note = G.note || (stuck ? "" : "Нажмите две одинаковые свободные кости.");
+    var note = G.note || (stuck ? "Свободных пар нет — нажмите «Перемешать»." : "Две одинаковые свободные кости.");
     root.innerHTML =
       '<div class="mj-hud">' +
       '<span class="mj-chip">Время <b id="mj-time">' + clock(elapsed()) + "</b></span>" +
       '<span class="mj-chip">Ходы <b id="mj-moves">' + G.moves + "</b></span>" +
       '<span class="mj-chip">Осталось <b id="mj-left">' + list.length + "</b></span></div>" +
       '<p class="mj-note" id="mj-note" aria-live="polite">' + esc(note) + "</p>" +
-      (stuck ? '<div class="mj-stuck" role="status"><p>Свободных пар не осталось. Ничего страшного — перемешайте оставшиеся кости, расклад снова будет решаемым.</p>' +
-        '<button type="button" class="btn btn-primary" data-mj-shuffle>Перемешать</button></div>' : "") +
-      '<div class="mj-scroll"><div class="mj-board" id="mj-board" style="width:' + bw + "px;height:" + bh + 'px">' +
-      list.map(function (t) {
-        var info = BY_TYPE[t.type];
-        var left = t.x * (m.tw / 2) + t.z * m.sx + padL;
-        var top = t.y * (m.th / 2) - t.z * m.sy + padT;
-        var free = isFree(t, list);
-        var cls = "mj-tile" + (free ? " is-free" : " is-locked") + (G.sel === t.id ? " is-sel" : "") + (G.hint.indexOf(t.id) >= 0 ? " is-hint" : "");
-        var z = t.z * 20 + t.y + (G.hint.indexOf(t.id) >= 0 ? 100 : 0);
-        return '<button type="button" class="' + cls + '" data-mj-id="' + t.id + '" style="width:' + m.tw + "px;height:" + m.th + "px;left:" + left + "px;top:" + top + "px;z-index:" + z + '" aria-label="' + esc(info.n) + (free ? ", свободна" : ", закрыта") + '">' +
-          '<span class="mj-ico">' + info.svg + '</span><span class="mj-name">' + esc(info.n) + "</span></button>";
-      }).join("") + "</div></div>" +
+      '<div class="mj-fit" id="mj-fit"></div>' +
       '<div class="mj-actions">' +
       '<button type="button" class="btn btn-secondary" data-mj-hint>Подсказка</button>' +
       '<button type="button" class="btn btn-ghost" data-mj-shuffle>Перемешать</button>' +
       '<button type="button" class="btn btn-ghost" data-mj-undo' + (G.undo.length ? "" : " disabled") + ">Отменить ход</button>" +
-      '<button type="button" class="btn btn-ghost" data-mj-restart>Начать заново</button>' +
-      '<button type="button" class="btn btn-back mj-back" data-brain-back="mahjong-intro">← Назад</button></div>';
+      '<button type="button" class="btn btn-ghost" data-mj-restart>Начать заново</button></div>';
+    var fit = $("mj-fit");
+    var m = metrics(list, fit.clientWidth || window.innerWidth - 28, fit.clientHeight || Math.round(window.innerHeight * 0.55));
+    fit.innerHTML = boardHTML(list, m);
   }
   function updateHud() {
     var t = $("mj-time"); if (t) t.textContent = clock(elapsed());
@@ -494,6 +513,8 @@
   });
 
   function onShow(name) {
+    if (name === "mahjong") document.body.classList.add("mj-play");
+    else document.body.classList.remove("mj-play");
     if (name !== "mahjong") stopTimer();
     if (name === "mahjong-intro") renderIntro();
     if (name === "mahjong-result") { G = null; renderResult(); }
