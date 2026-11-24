@@ -1,33 +1,34 @@
 /* Лаборатория здоровья — сервис-воркер: работа без интернета */
-var CACHE = "lz-game-v24";
+var CACHE = "lz-game-v25";
+var V = "?v=25";
 var ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
-  "./css/fonts.css",
-  "./css/images.css",
-  "./css/style.css",
-  "./css/farm.css",
-  "./css/yard.css",
-  "./css/brain.css",
+  "./css/fonts.css" + V,
+  "./css/images.css" + V,
+  "./css/style.css" + V,
+  "./css/farm.css" + V,
+  "./css/yard.css" + V,
+  "./css/brain.css" + V,
   "./icons/icon.svg",
   "./icons/icon-maskable.svg",
-  "./js/app.js",
-  "./js/splash.js",
-  "./js/brain.js",
-  "./js/schulte.js",
-  "./js/words-data.js",
-  "./js/wordgame.js",
-  "./js/mahjong.js",
-  "./js/data.js",
-  "./js/farm-data.js",
-  "./js/farm-data2.js",
-  "./js/farm.js",
-  "./js/yard-data.js",
-  "./js/yard.js",
-  "./js/platform.js",
-  "./js/vk-init.js",
-  "./js/vendor/vk-bridge.min.js",
+  "./js/app.js" + V,
+  "./js/splash.js" + V,
+  "./js/brain.js" + V,
+  "./js/schulte.js" + V,
+  "./js/words-data.js" + V,
+  "./js/wordgame.js" + V,
+  "./js/mahjong.js" + V,
+  "./js/data.js" + V,
+  "./js/farm-data.js" + V,
+  "./js/farm-data2.js" + V,
+  "./js/farm.js" + V,
+  "./js/yard-data.js" + V,
+  "./js/yard.js" + V,
+  "./js/platform.js" + V,
+  "./js/vk-init.js" + V,
+  "./js/vendor/vk-bridge.min.js" + V,
   "./img/people/nina.svg",
   "./img/people/ivan.svg",
   "./img/people/valentina.svg",
@@ -82,8 +83,9 @@ self.addEventListener("fetch", function (e) {
     }).catch(function () { return caches.match("./index.html"); }));
     return;
   }
-  // Статика: сначала кэш
-  e.respondWith(caches.match(req, { ignoreSearch: true }).then(function (hit) {
+  // Статика: сначала кэш. Адрес сравниваем целиком, вместе с ?v=,
+  // чтобы новая версия стилей не подменялась старым файлом.
+  e.respondWith(caches.match(req).then(function (hit) {
     return hit || fetch(req).then(function (res) {
       if (res.ok) { var copy = res.clone(); caches.open(CACHE).then(function (c) { c.put(req, copy); }); }
       return res;
