@@ -96,17 +96,18 @@
   var APP_LINK = "https://vk.ru/app54875478";
   var SITE_LINK = "https://igra.orkestr.online/";
 
-  function isCancel(err) {
+  /* Отмена — только явный отказ. «closed» и «access denied» на m.vk.ru
+     означают, что метод недоступен, а не что человек закрыл окно. */
+  function isUserCancel(err) {
     if (!err) return false;
-    /* На сайте закрытие системного окна — AbortError. «denied» в тексте
-       обычной ошибки браузера не отмена: тогда копируем ссылку. */
     if (err.name === "AbortError") return true;
     var data = err.error_data || {};
-    var reason = String(data.error_reason || err.error_reason || "");
     var type = String(err.error_type || "");
-    if (/cancel|denied|user_denied|close|отмен/i.test(reason)) return true;
-    var msg = String(data.error_msg || "");
-    return type === "client_error" && /cancel|denied|close|отмен/i.test(msg);
+    if (type !== "client_error") return false;
+    var code = data.error_code != null ? data.error_code : err.error_code;
+    if (Number(code) === 4) return true;
+    var reason = String(data.error_reason || err.error_reason || "");
+    return /user[ _-]?denied|cancelled|canceled|отмен/i.test(reason);
   }
   function legacyCopy(text) {
     try {
@@ -134,11 +135,32 @@
       return bridge.send(method, params);
     });
   }
+  /* false — метода нет, его не вызываем. true — можно вызывать
+     (проверка подтвердила или сама не ответила). */
+  function bridgeSupports(method) {
+    return bridgeReady(1200).then(function (bridge) {
+      if (!bridge || typeof bridge.send !== "function") return false;
+      var check;
+      if (typeof bridge.supportsAsync === "function") {
+        check = Promise.resolve().then(function () { return bridge.supportsAsync(method); });
+      } else {
+        check = Promise.resolve(bridge.send("VKWebAppSupports", { method: method })).then(function (res) {
+          if (res && typeof res.supported === "boolean") return res.supported;
+          if (res && typeof res.result === "boolean") return res.result;
+          return true;
+        }, function () { return true; });
+      }
+      return withTimeout(check, 800).then(function (value) { return value !== false; }, function () { return true; });
+    });
+  }
   function shareOnSite(text) {
     var full = text + "\n" + SITE_LINK;
+    return shareOutside(text, full, SITE_LINK);
+  }
+  function shareOutside(text, full, url) {
     if (navigator.share) {
-      return navigator.share({ title: "Лаборатория здоровья", text: text, url: SITE_LINK }).then(function () { return "shared"; }, function (err) {
-        if (isCancel(err)) return "cancelled";
+      return navigator.share({ title: "Лаборатория здоровья", text: text, url: url }).then(function () { return "shared"; }, function (err) {
+        if (isUserCancel(err)) return "cancelled";
         return copyText(full);
       });
     }
@@ -146,17 +168,24 @@
   }
   function shareInApp(text, wallFirst) {
     var message = text + "\n" + APP_LINK;
-    function wall() { return bridgeSend("VKWebAppShowWallPostBox", { message: message }); }
-    function link() { return bridgeSend("VKWebAppShare", { link: APP_LINK }); }
-    var first = wallFirst ? wall : link;
-    var second = wallFirst ? link : wall;
-    return first().then(function () { return "shared"; }, function (err) {
-      if (isCancel(err)) return "cancelled";
-      return second().then(function () { return "shared"; }, function (err2) {
-        if (isCancel(err2)) return "cancelled";
-        return copyText(message);
+    var steps = wallFirst
+      ? ["VKWebAppShowWallPostBox", "VKWebAppShare"]
+      : ["VKWebAppShare", "VKWebAppShowWallPostBox"];
+    function call(method) {
+      var params = method === "VKWebAppShowWallPostBox" ? { message: message } : { link: APP_LINK };
+      return bridgeSupports(method).then(function (ok) {
+        if (!ok) return Promise.reject({ error_type: "client_error", error_data: { error_code: 6, error_reason: "Unsupported" } });
+        return bridgeSend(method, params);
       });
-    });
+    }
+    function tryAt(i) {
+      if (i >= steps.length) return shareOutside(text, message, APP_LINK);
+      return call(steps[i]).then(function () { return "shared"; }, function (err) {
+        if (isUserCancel(err)) return "cancelled";
+        return tryAt(i + 1);
+      });
+    }
+    return tryAt(0);
   }
   function cloudInit() {
     return (window.LZCloud && LZCloud.start) ? LZCloud.start() : Promise.resolve();
