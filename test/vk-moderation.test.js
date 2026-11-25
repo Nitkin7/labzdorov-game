@@ -176,6 +176,14 @@ function loadPlatform(search, extras) {
   return ctx;
 }
 
+function methodsOf(ctx) {
+  return ctx.__calls.map(function (c) { return c.method; });
+}
+function callOf(ctx, method) {
+  for (var i = 0; i < ctx.__calls.length; i++) if (ctx.__calls[i].method === method) return ctx.__calls[i];
+  return null;
+}
+
 function shareTests() {
   var vk = loadPlatform("?platform=vk&vk_user_id=1", {
     vkBridge: { send: function (method) {
@@ -185,36 +193,91 @@ function shareTests() {
   });
   return vk.Platform.share("Совет дня: пейте тёплую воду").then(function (r) {
     assert.strictEqual(r, "shared");
-    assert.strictEqual(vk.__calls[0].method, "VKWebAppShowWallPostBox");
-    assert.ok(vk.__calls[0].params.message.indexOf("https://vk.ru/app54875478") >= 0);
-    assert.ok(vk.__calls[0].params.message.indexOf("тёплую воду") >= 0);
+    var wall = callOf(vk, "VKWebAppShowWallPostBox");
+    assert.ok(wall);
+    assert.ok(wall.params.message.indexOf("https://vk.ru/app54875478") >= 0);
+    assert.ok(wall.params.message.indexOf("тёплую воду") >= 0);
+    assert.strictEqual(callOf(vk, "VKWebAppShare"), null);
     var cancelled = loadPlatform("?platform=vk&vk_user_id=1", {
-      vkBridge: { send: function () { return Promise.reject({ error_type: "client_error", error_data: { error_reason: "User denied" } }); } }
+      vkBridge: {
+        supportsAsync: function () { return Promise.resolve(true); },
+        send: function (method) {
+          if (method === "VKWebAppShowWallPostBox") return Promise.reject({ error_type: "client_error", error_data: { error_code: 4, error_reason: "User denied" } });
+          return Promise.reject(new Error("should-not-" + method));
+        }
+      }
     });
     return cancelled.Platform.share("Совет");
   }).then(function (r) {
     assert.strictEqual(r, "cancelled");
-    var ok = loadPlatform("?platform=ok&vk_platform=desktop_web_ok&vk_user_id=2", {
-      vkBridge: { send: function (method) {
-        if (method === "VKWebAppShare") return Promise.resolve({ result: true });
-        return Promise.reject(new Error("no"));
-      } }
+    var unsupported = loadPlatform("?platform=vk&vk_platform=mobile_web&vk_user_id=1", {
+      vkBridge: {
+        supportsAsync: function (method) { return Promise.resolve(method !== "VKWebAppShowWallPostBox"); },
+        send: function (method) {
+          if (method === "VKWebAppShare") return Promise.resolve({ result: true });
+          return Promise.reject(new Error("should-not-" + method));
+        }
+      }
     });
-    return ok.Platform.share("Совет дня").then(function (result) {
+    return unsupported.Platform.share("Совет дня").then(function (result) {
       assert.strictEqual(result, "shared");
-      assert.strictEqual(ok.__calls[0].method, "VKWebAppShare");
-      assert.strictEqual(ok.__calls[0].params.link, "https://vk.ru/app54875478");
-      var copied = "";
-      var web = loadPlatform("?platform=web", {
-        navigator: {
-          share: function () { return Promise.reject({ name: "NotAllowedError", message: "denied" }); },
-          clipboard: { writeText: function (t) { copied = t; return Promise.resolve(); } }
+      assert.deepStrictEqual(methodsOf(unsupported), ["VKWebAppShare"]);
+      assert.strictEqual(unsupported.__calls[0].params.link, "https://vk.ru/app54875478");
+      var generic = loadPlatform("?platform=vk&vk_platform=mobile_web&vk_user_id=1", {
+        vkBridge: {
+          supportsAsync: function () { return Promise.resolve(true); },
+          send: function (method) {
+            if (method === "VKWebAppShowWallPostBox") return Promise.reject({ error_type: "client_error", error_data: { error_code: 1, error_reason: "Action closed" } });
+            if (method === "VKWebAppShare") return Promise.resolve({ result: true });
+            return Promise.reject(new Error("no"));
+          }
         }
       });
-      return web.Platform.share("Совет дня: мята").then(function (webResult) {
-        assert.strictEqual(webResult, "copied");
-        assert.ok(copied.indexOf("https://igra.orkestr.online/") >= 0);
-        assert.ok(copied.indexOf("мята") >= 0);
+      return generic.Platform.share("Совет").then(function (genericResult) {
+        assert.strictEqual(genericResult, "shared");
+        assert.deepStrictEqual(methodsOf(generic), ["VKWebAppShowWallPostBox", "VKWebAppShare"]);
+        var copied = "";
+        var bothDown = loadPlatform("?platform=vk&vk_platform=mobile_web&vk_user_id=1", {
+          vkBridge: {
+            supportsAsync: function () { return Promise.resolve(false); },
+            send: function () { return Promise.reject(new Error("should-not")); }
+          },
+          navigator: {
+            share: function () { return Promise.reject({ name: "NotAllowedError", message: "blocked" }); },
+            clipboard: { writeText: function (t) { copied = t; return Promise.resolve(); } }
+          }
+        });
+        return bothDown.Platform.share("Совет дня: мята").then(function (copyResult) {
+          assert.strictEqual(copyResult, "copied");
+          assert.deepStrictEqual(methodsOf(bothDown), []);
+          assert.ok(copied.indexOf("https://vk.ru/app54875478") >= 0);
+          assert.ok(copied.indexOf("мята") >= 0);
+          var byEvent = loadPlatform("?platform=ok&vk_user_id=2", {
+            vkBridge: { send: function (method, params) {
+              if (method === "VKWebAppSupports") return Promise.resolve({ supported: params.method !== "VKWebAppShare" });
+              if (method === "VKWebAppShowWallPostBox") return Promise.resolve({ result: true });
+              return Promise.reject(new Error("no"));
+            } }
+          });
+          return byEvent.Platform.share("Совет дня").then(function (okResult) {
+            assert.strictEqual(okResult, "shared");
+            assert.ok(callOf(byEvent, "VKWebAppSupports"));
+            assert.strictEqual(callOf(byEvent, "VKWebAppShare"), null);
+            assert.ok(callOf(byEvent, "VKWebAppShowWallPostBox"));
+            var webCopied = "";
+            var web = loadPlatform("?platform=web", {
+              navigator: {
+                share: function () { return Promise.reject({ name: "NotAllowedError", message: "denied" }); },
+                clipboard: { writeText: function (t) { webCopied = t; return Promise.resolve(); } }
+              }
+            });
+            return web.Platform.share("Совет дня: мята").then(function (webResult) {
+              assert.strictEqual(webResult, "copied");
+              assert.ok(webCopied.indexOf("https://igra.orkestr.online/") >= 0);
+              assert.ok(webCopied.indexOf("мята") >= 0);
+            });
+          });
+        });
       });
     });
   });
