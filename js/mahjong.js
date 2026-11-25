@@ -5,6 +5,42 @@
 (function () {
   "use strict";
 
+  /* Стили вшиты в скрипт: файл js/mahjong.js новый, старый сервис-воркер
+     отдаёт его из сети. Даже если css/brain.css остался от lz-game-v23,
+     кости не разъезжаются плоской сеткой. */
+  var MJ_CSS = [
+    "body.mj-play{overflow:hidden;height:100dvh}",
+    "body.mj-play .app{height:100dvh;max-height:100dvh;overflow:hidden;display:flex;flex-direction:column;box-sizing:border-box;padding-top:8px;padding-bottom:8px}",
+    "body.mj-play .signature{display:none}",
+    "body.mj-play .topnav{position:static;margin:0 0 4px}",
+    "body.mj-play .topnav .btn-back{min-height:44px;padding:4px 14px}",
+    "body.mj-play #screen-mahjong.active{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow:hidden}",
+    "#screen-mahjong #mahjong-root{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}",
+    ".mj-hud{display:flex;flex-wrap:nowrap;gap:6px;margin:0 0 4px}",
+    ".mj-chip{flex:1 1 0;display:flex;align-items:center;justify-content:center;gap:4px;min-width:0;padding:3px 6px;border-radius:999px;background:#fffdf6;border:2px solid rgba(196,154,60,.6);color:#1f3d20;font-weight:800;font-size:.82rem;white-space:nowrap}",
+    ".mj-chip b{font-family:Lora,Georgia,serif;font-size:1rem}",
+    ".mj-note{margin:0 0 4px;text-align:center;color:#1f3d20;font-weight:700;font-size:.9rem;line-height:1.25}",
+    ".mj-fit{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center}",
+    ".mj-board{position:relative;margin:0 auto;flex:none}",
+    ".mj-tile{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:2px 1px;border-radius:10px;border:2px solid #c49a3c;background:linear-gradient(180deg,#fffdf8,#f6ead0);color:#1f3d20;box-shadow:2px 3px 0 #c9b27a,4px 6px 6px rgba(40,30,10,.28);cursor:pointer;font:inherit}",
+    ".mj-tile.is-raised{box-shadow:4px 5px 0 #b89a58,8px 12px 10px rgba(40,30,10,.38)}",
+    ".mj-tile.is-top{box-shadow:5px 7px 0 #a6843e,10px 16px 12px rgba(30,20,5,.45)}",
+    ".mj-tile.is-locked{filter:saturate(.72) brightness(.9)}",
+    ".mj-tile.is-sel{border-color:#1f3d20;box-shadow:0 0 0 3px #2e5b2b,4px 6px 8px rgba(40,30,10,.3)}",
+    ".mj-tile.is-hint{border-color:#1f3d20;background:#ffe08a;filter:none;box-shadow:0 0 0 4px #e2b423,0 0 0 7px #1f3d20;z-index:80}",
+    ".mj-ico{display:block;width:70%;flex:1 1 auto;min-height:0}",
+    ".mj-ico svg{display:block;width:100%;height:100%}",
+    ".mj-name{display:block;width:100%;font-weight:800;font-size:clamp(9px,2.4vw,13px);line-height:1.05;text-align:center;color:#1f3d20}",
+    ".mj-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:4px 0 0;flex:none}",
+    ".mj-actions .btn{min-height:40px;margin:0;padding:6px 8px;font-size:.92rem}"
+  ].join("\n");
+  if (typeof document !== "undefined" && document.head && !document.getElementById("lz-mj-css")) {
+    var mjStyle = document.createElement("style");
+    mjStyle.id = "lz-mj-css";
+    mjStyle.textContent = MJ_CSS;
+    document.head.appendChild(mjStyle);
+  }
+
   var ID = "mahjong";
   var $ = function (id) { return document.getElementById(id); };
   function L() { return window.LZ; }
