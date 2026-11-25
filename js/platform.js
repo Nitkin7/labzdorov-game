@@ -93,46 +93,94 @@
 
   /* v13: проверка подписки убрана — игра открыта для всех. */
   var VK_APP_ID = 54875478;   // ID мини-приложения ВК
+  var APP_LINK = "https://vk.ru/app54875478";
+  var SITE_LINK = "https://igra.orkestr.online/";
+
+  function isCancel(err) {
+    if (!err) return false;
+    /* На сайте закрытие системного окна — AbortError. «denied» в тексте
+       обычной ошибки браузера не отмена: тогда копируем ссылку. */
+    if (err.name === "AbortError") return true;
+    var data = err.error_data || {};
+    var reason = String(data.error_reason || err.error_reason || "");
+    var type = String(err.error_type || "");
+    if (/cancel|denied|user_denied|close|отмен/i.test(reason)) return true;
+    var msg = String(data.error_msg || "");
+    return type === "client_error" && /cancel|denied|close|отмен/i.test(msg);
+  }
+  function legacyCopy(text) {
+    try {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      return ok ? "copied" : "failed";
+    } catch (e) { return "failed"; }
+  }
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).then(function () { return "copied"; }, function () { return legacyCopy(text); });
+    }
+    return Promise.resolve(legacyCopy(text));
+  }
+  function bridgeSend(method, params) {
+    return bridgeReady(1500).then(function (bridge) {
+      if (!bridge) return Promise.reject(new Error("no-bridge"));
+      return bridge.send(method, params);
+    });
+  }
+  function shareOnSite(text) {
+    var full = text + "\n" + SITE_LINK;
+    if (navigator.share) {
+      return navigator.share({ title: "Лаборатория здоровья", text: text, url: SITE_LINK }).then(function () { return "shared"; }, function (err) {
+        if (isCancel(err)) return "cancelled";
+        return copyText(full);
+      });
+    }
+    return copyText(full);
+  }
+  function shareInApp(text, wallFirst) {
+    var message = text + "\n" + APP_LINK;
+    function wall() { return bridgeSend("VKWebAppShowWallPostBox", { message: message }); }
+    function link() { return bridgeSend("VKWebAppShare", { link: APP_LINK }); }
+    var first = wallFirst ? wall : link;
+    var second = wallFirst ? link : wall;
+    return first().then(function () { return "shared"; }, function (err) {
+      if (isCancel(err)) return "cancelled";
+      return second().then(function () { return "shared"; }, function (err2) {
+        if (isCancel(err2)) return "cancelled";
+        return copyText(message);
+      });
+    });
+  }
+  function cloudInit() {
+    return (window.LZCloud && LZCloud.start) ? LZCloud.start() : Promise.resolve();
+  }
 
   var adapters = {
     web: {
       init: function () { return Promise.resolve(); },
-      share: function (text, url) {
-        if (navigator.share) {
-          return navigator.share({ title: "Лаборатория здоровья", text: text, url: url }).then(function () { return "shared"; }, function () { return "cancelled"; });
-        }
-        if (navigator.clipboard && window.isSecureContext) {
-          return navigator.clipboard.writeText(text + " " + url).then(function () { return "copied"; }, function () { return "failed"; });
-        }
-        return Promise.resolve("failed");
-      },
-      saveProgress: function () { return Promise.resolve(); },   // всё хранится в localStorage
-      showAd: function () { return Promise.resolve(false); }     // рекламы нет
+      share: function (text) { return shareOnSite(text); },
+      saveProgress: function () { return Promise.resolve(); },
+      showAd: function () { return Promise.resolve(false); }
     },
 
     vk: {
-      init: function () { return Promise.resolve(); },   // VKWebAppInit — в js/vk-init.js
-      share: function (text, url) {
-        // TODO: window.vkBridge.send("VKWebAppShare", { link: url });
-        return adapters.web.share(text, url);
-      },
-      saveProgress: function (state) {
-        // TODO: VKWebAppStorageSet — синхронизация прогресса между устройствами
-        return Promise.resolve();
-      },
+      init: cloudInit,
+      share: function (text) { return shareInApp(text, true); },
+      saveProgress: function () { return (window.LZCloud && LZCloud.flush) ? LZCloud.flush() : Promise.resolve(); },
       showAd: function () { return Promise.resolve(false); }
     },
 
     ok: {
-      init: function () { return Promise.resolve(); },   // ОК запускает игру через VK Bridge (js/vk-init.js)
-      share: function (text, url) {
-        // TODO: FAPI.UI.postMediatopic({ media: [{ type: "text", text: text }, { type: "link", url: url }] }, false);
-        return adapters.web.share(text, url);
-      },
-      saveProgress: function (state) {
-        // TODO: storage.set через REST API ОК (на стороне сервера, без ключей в клиенте)
-        return Promise.resolve();
-      },
+      init: cloudInit,
+      share: function (text) { return shareInApp(text, false); },
+      saveProgress: function () { return (window.LZCloud && LZCloud.flush) ? LZCloud.flush() : Promise.resolve(); },
       showAd: function () { return Promise.resolve(false); }
     }
   };
@@ -144,7 +192,7 @@
     isEmbedded: name !== "web",
     groupUrl: groupUrl[name],
     init: function () { return adapters[name].init().catch(function () {}); },
-    share: function (text) { return adapters[name].share(text, groupUrl[name]); },
+    share: function (text) { return adapters[name].share(text).catch(function () { return "failed"; }); },
     saveProgress: function (state) { return adapters[name].saveProgress(state).catch(function () {}); },
     showAd: function () { return adapters[name].showAd(); },
     userInfo: userInfo,

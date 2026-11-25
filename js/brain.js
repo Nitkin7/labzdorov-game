@@ -190,7 +190,13 @@
     if (b) { e.preventDefault(); back(b.getAttribute("data-brain-back") || "brain"); }
   });
 
+  function reloadProgress() {
+    B = load();
+    var name = L() ? L().current() : "";
+    if (name === "home" || name === "brain") onShow(name);
+  }
   window.LZBrain = {
+    reloadProgress: reloadProgress,
     KEY: KEY, RANKS: RANKS, register: register, record: record, update: update, best: best, title: overallTitle, data: gameData, save: save, history: hist, week: week,
     progressHTML: progressHTML, pref: pref, onShow: onShow, back: back, games: function () { return GAMES; },
     _data: function () { return B; }

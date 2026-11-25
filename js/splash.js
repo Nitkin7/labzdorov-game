@@ -76,13 +76,14 @@
       img.src = "icons/icon.svg";
       if (img.complete && img.getAttribute("src")) finish();
     }));
+    var embedded = document.documentElement.getAttribute("data-platform") !== "web";
     if (window.Platform && Platform.init) {
       jobs.push(Promise.race([
         Promise.resolve().then(function () { return Platform.init(); }).catch(function () {}),
-        new Promise(function (r) { setTimeout(r, 600); })
+        new Promise(function (r) { setTimeout(r, embedded ? 4000 : 600); })
       ]));
     }
-    var wall = setTimeout(hide, 2200);
+    var wall = setTimeout(hide, embedded ? 4800 : 2200);
     Promise.all(jobs).then(function () {
       clearTimeout(wall);
       set(92);

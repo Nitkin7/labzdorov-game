@@ -2210,8 +2210,15 @@
     if (need) { var inSheet = !$("sheet").hidden && $("sheet-body").querySelector("[data-end]"); if (inSheet) closeSheet(); rerender(); }
   }
 
+  function reloadProgress() {
+    F = load();
+    var name = current();
+    if (name === "home") renderHomeCard();
+    else if (FARM_SCREENS.indexOf(name) >= 0) rerender();
+  }
   window.LZFarm = {
     refresh: function () { rerender(); if (window.LZYard) LZYard.onShow(current()); },
+    reloadProgress: reloadProgress,
     closeSheet: function () { if ($("sheet").hidden) return false; closeSheet(); return true; },
     onShow: onShow, onQuizDone: onQuizDone, onBrain: onBrain, brainStatus: brainStatus, reset: reset, bind: bind,
     _state: function () { return F; }, _plantSVG: plantSVG, _plantImg: plantImg,
