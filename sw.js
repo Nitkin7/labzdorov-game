@@ -1,6 +1,6 @@
 /* Лаборатория здоровья — сервис-воркер: работа без интернета */
-var CACHE = "lz-game-v25";
-var V = "?v=25";
+var CACHE = "lz-game-v26";
+var V = "?v=26";
 var ASSETS = [
   "./",
   "./index.html",
@@ -27,6 +27,7 @@ var ASSETS = [
   "./js/yard-data.js" + V,
   "./js/yard.js" + V,
   "./js/platform.js" + V,
+  "./js/cloud-sync.js" + V,
   "./js/vk-init.js" + V,
   "./js/vendor/vk-bridge.min.js" + V,
   "./img/people/nina.svg",

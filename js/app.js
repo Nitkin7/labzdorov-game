@@ -456,9 +456,12 @@
 
   /* ---------- Поделиться ---------- */
   function share(text) {
+    toast("Открываем окно, чтобы поделиться…");
     Platform.share(text).then(function (r) {
-      if (r === "copied") toast("Текст скопирован — вставьте его в сообщение друзьям.");
-      else if (r === "failed") toast("Не получилось поделиться на этом устройстве.");
+      if (r === "shared") toast("Готово. Можно отправить друзьям.");
+      else if (r === "copied") toast("Скопировано");
+      else if (r === "cancelled") toast("Окно закрыто. Поделиться можно позже.");
+      else toast("Не получилось поделиться. Попробуйте ещё раз.");
     });
   }
 
@@ -493,8 +496,18 @@
   };
 
   /* ---------- Общий доступ для огорода ---------- */
+  function reloadProgress() {
+    var n = load();
+    Object.keys(S).forEach(function (k) { delete S[k]; });
+    Object.keys(n).forEach(function (k) { S[k] = n[k]; });
+    if (current === "home") renderHome();
+    else if (current === "settings") renderSettings();
+    else if (current === "quiz-intro") renderQuizIntro();
+    else if (current === "herbs-intro") renderHerbsIntro();
+    else if (current === "tip") renderTip();
+  }
   window.LZ = { go: go, show: show, toast: toast, plural: plural, tone: tone, dayKey: dayKey, yesterdayKey: yesterdayKey,
-    current: function () { return current; } };
+    current: function () { return current; }, reloadProgress: reloadProgress };
   if (window.LZFarm) LZFarm.bind();
 
   /* ---------- Запуск ---------- */
