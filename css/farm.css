@@ -160,8 +160,7 @@ h3.first{margin-top:0}
 body.sheet-open{overflow:hidden}
 .farm-card .menu-title{color:#fff8e1}
 .farm-card .menu-desc{color:#e7dcb6}
-.toast{pointer-events:none}
-body.farm-mode .toast{bottom:calc(100px + env(safe-area-inset-bottom))}
+body.farm-mode .toast{bottom:calc(88px + env(safe-area-inset-bottom))}
 .recipe{flex-wrap:wrap}
 .recipe .row-text{min-width:150px}
 @media (max-width:420px){.recipe .btn-sm{margin-left:auto;max-width:none;min-width:140px}}
