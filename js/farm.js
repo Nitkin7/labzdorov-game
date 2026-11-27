@@ -35,9 +35,11 @@
       /* v6 */
       dog: null, visitor: null, visNext: 0, lastSeen: 0, nib: null,
       /* v9: бонус дня за «Тренировку памяти и внимания» — { "3": "2026-11-03", ... } */
-      brainDay: {} };
+      brainDay: {},
+      /* серия дней «Логических задач»; старые сохранения получают 0 при загрузке */
+      logicDay: null, logicStreak: 0, logicDaily: null };
   }
-  function freshStats() { return { orchard: 0, honey: 0, forest: 0, jams: 0, contracts: 0, fairs: 0, convoys: 0, events: 0, chests: 0, weekChests: 0, dried: 0, guests: 0, dogCare: 0, brain: 0, words: 0 }; }
+  function freshStats() { return { orchard: 0, honey: 0, forest: 0, jams: 0, contracts: 0, fairs: 0, convoys: 0, events: 0, chests: 0, weekChests: 0, dried: 0, guests: 0, dogCare: 0, brain: 0, words: 0, logic: 0 }; }
   /* Перенос сохранений v1–v3: ничего не удаляем, только добавляем новое */
   function migrate(raw) {
     var st = freshStats(); for (var s in st) if (!(s in raw.st)) raw.st[s] = st[s];
@@ -562,11 +564,41 @@
   /* v9: «Тренировка памяти и внимания» — скромный бонус раз в день за каждый размер таблицы.
      v10: «Словодел» — +15 монет раз в день за первый пройденный раунд (свой ключ "words").
      Маджонг — тот же порядок сумм, отдельные ключи mj0/mj1/mj2, чтобы не задеть Шульте. */
-  var BRAIN_COINS = { "3": 10, "4": 15, "5": 20, "words": 15, "mj0": 10, "mj1": 15, "mj2": 20 };
+  var BRAIN_COINS = { "3": 10, "4": 15, "5": 20, "words": 15, "mj0": 10, "mj1": 15, "mj2": 20, "lg4": 10, "lg5": 15, "sd6": 12, "sd9": 20, "kak": 15, "pat": 10, "pth": 15 };
+  var LOGIC_XP = { "lg4": 2, "lg5": 3, "sd6": 2, "sd9": 4, "kak": 3, "pat": 2, "pth": 3 };
   function brainKey(game, variant) {
     if (game === "words") return "words";
     if (game === "mahjong") return "mj" + variant;
+    if (game === "logic") return String(variant);
     return String(variant);
+  }
+  /* Раз в день за трудность и отдельно за задачу дня. Серия дней не сгорает в середине дня. */
+  function onLogic(variant, isDaily) {
+    var today = L().dayKey(), coins = 0, xp = 0, already = false, daily = 0;
+    if (!F.brainDay || typeof F.brainDay !== "object") F.brainDay = {};
+    F.st.logic = (F.st.logic || 0) + 1;
+    if (F.logicDay !== today) {
+      F.logicStreak = F.logicDay === L().yesterdayKey() ? (F.logicStreak || 0) + 1 : 1;
+      F.logicDay = today;
+    }
+    if (BRAIN_COINS[variant]) {
+      if (F.brainDay[variant] === today) already = true;
+      else {
+        F.brainDay[variant] = today;
+        coins = BRAIN_COINS[variant];
+        xp = LOGIC_XP[variant] || 0;
+        F.coins += coins;
+      }
+    }
+    if (isDaily && F.logicDaily !== today) {
+      F.logicDaily = today;
+      daily = 5 + Math.min((F.logicStreak || 1) - 1, 5);
+      F.coins += daily;
+      xp += 1;
+    }
+    if (xp) gainXp(xp);
+    save();
+    return { coins: coins, xp: xp, already: already, daily: daily, streak: F.logicStreak || 1 };
   }
   function onBrain(game, variant) {
     var today = L().dayKey(), v = brainKey(game, variant), coins = 0, already = false;
@@ -585,6 +617,10 @@
   /* строка для витрины игр и огорода; size — конкретный размер таблицы, "words" — Словодел, или все */
   function brainStatus(size) {
     var today = L().dayKey();
+    if (size === "logic") {
+      var st = F.logicStreak || 0;
+      return st ? "Серия задач: " + st + " " + L().plural(st, "день", "дня", "дней") : "Первая задача дня приносит монеты в огород";
+    }
     if (size === "words") return F.brainDay.words === today ? "Бонус огорода за Словодел сегодня получен ✓" : "За первый пройденный раунд сегодня: +" + coinsWord(BRAIN_COINS.words) + " в огород";
     if (size != null && String(size).indexOf("mj") === 0) {
       var mk = String(size), mn = mk === "mj0" ? "лёгкий" : mk === "mj1" ? "средний" : "сложный";
@@ -2220,7 +2256,7 @@
     refresh: function () { rerender(); if (window.LZYard) LZYard.onShow(current()); },
     reloadProgress: reloadProgress,
     closeSheet: function () { if ($("sheet").hidden) return false; closeSheet(); return true; },
-    onShow: onShow, onQuizDone: onQuizDone, onBrain: onBrain, brainStatus: brainStatus, reset: reset, bind: bind,
+    onShow: onShow, onQuizDone: onQuizDone, onBrain: onBrain, onLogic: onLogic, brainStatus: brainStatus, reset: reset, bind: bind,
     _state: function () { return F; }, _plantSVG: plantSVG, _plantImg: plantImg,
     _v6: { spawn: function (t, b) { return spawnGuest(t, b); }, away: function (ms) { F.lastSeen = now() - ms; guestAway(); rerender(); return F.nib; }, chase: function () { dogChase(); }, guests: GU, dog: DOG, state: function () { return { dog: F.dog, visitor: F.visitor, nib: F.nib, visNext: F.visNext, guests: F.st.guests, dogCare: F.st.dogCare }; } },
     _v4: { activeEvent: activeEvent, nextEvent: nextEvent, season: season, nextSeason: nextSeason, daysLeftInSeason: daysLeftInSeason, goals: goals, eventWindows: eventWindows, dayNum: dayNum, availableKeys: availableKeys, statVal: statVal, albumTotal: albumTotal, albumSeen: albumSeen, save: save }
