@@ -132,6 +132,7 @@
   function overlayOpen() {
     var m = $("modal"); if (m && !m.hidden) { $("modal-no").click(); return true; }
     if (window.LZFarm && LZFarm.closeSheet && LZFarm.closeSheet()) return true;
+    if (window.LZLogic && LZLogic.closeSheet && LZLogic.closeSheet()) return true;
     return false;
   }
   window.addEventListener("popstate", function (e) {

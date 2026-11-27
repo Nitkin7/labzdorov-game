@@ -80,4 +80,43 @@ body.lg-play .signature{display:none}
   padding:8px 14px; border-radius:999px; pointer-events:none; text-align:center
 }
 .lg .toast[hidden] {display:none}
+.lg .game {display:flex; flex-direction:column; align-items:stretch; gap:10px}
+.lg .game-open {
+  display:block; width:100%; text-align:left; padding:0; border:0; background:transparent;
+  color:inherit; font:inherit; cursor:pointer
+}
+.lg .help-wide {width:100%; margin-top:8px; font-size:20px}
+.lg .sheet {
+  position:fixed; inset:0; z-index:80; background:rgba(43,42,36,.46);
+  display:flex; align-items:center; justify-content:center; padding:12px
+}
+.lg .sheet-card {
+  width:min(640px,100%); max-height:min(88vh,820px); overflow:hidden;
+  display:flex; flex-direction:column;
+  background:var(--cream); color:var(--text); border:2px solid var(--gold); border-radius:22px;
+  font-size:20px; line-height:1.4;
+  box-shadow:0 16px 40px rgba(60,50,20,.22)
+}
+.lg .sheet-body {overflow:auto; padding:16px 16px 8px}
+.lg .sheet-foot {padding:8px 16px 16px; background:var(--cream); border-top:1px solid rgba(196,154,60,.45)}
+.lg .sheet-card h2 {font-size:1.45rem}
+.lg .rules {margin:8px 0 12px; padding-left:1.15em}
+.lg .rules li {margin:.45em 0}
+.lg .step {
+  background:var(--cream-2); border-left:4px solid var(--gold); border-radius:12px;
+  padding:12px 14px; margin:8px 0; font-size:20px
+}
+.lg .clues li.on {background:#fff6df; border-radius:8px; padding:4px 6px; font-weight:800; color:var(--green-dark)}
+.lg .cell.aim {outline:3px solid var(--gold-dark); outline-offset:2px; box-shadow:0 0 0 4px rgba(196,154,60,.45)}
+.lg .ex {margin:4px 0 12px}
+.lg .ex-row, .lg .ex-kak {display:flex; gap:6px; align-items:center; justify-content:center; flex-wrap:wrap}
+.lg .ex-row span, .lg .ex-kak span {
+  min-width:44px; min-height:44px; display:flex; align-items:center; justify-content:center;
+  border:2px solid var(--gold); border-radius:10px; background:#fff; font-weight:800;
+  color:var(--green-dark); font-size:20px
+}
+.lg .ex-row .gap {background:var(--ok-bg); border-color:var(--ok)}
+.lg .ex-kak b {font-size:18px; color:var(--gold-dark)}
+.lg .ex-cap {text-align:center; margin:8px 0 0; font-size:18px}
+.lg .sheet .btn, .lg .step, .lg .sheet-card {font-size:20px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
