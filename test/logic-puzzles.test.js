@@ -52,4 +52,47 @@ data.pattern.forEach(function (p, i) {
   assert.deepStrictEqual(hits, [p.answer], "pattern " + i + " " + p.kind);
 });
 
+var tutor = data.tutorial;
+assert.ok(tutor, "tutorial puzzle");
+assert.strictEqual(tutor.n, 3, "tutorial houses");
+assert.ok(tutor.clues.length >= 3 && tutor.clues.length <= 4, "tutorial clues");
+assert.strictEqual(engine.countEinstein(tutor, 2), 1, "tutorial unique");
+tutor.cats.forEach(function (cat, ci) {
+  var houses = {};
+  cat.values.forEach(function (_, vi) {
+    var h = tutor.solution[ci][vi];
+    assert.ok(h >= 0 && h < tutor.n, "tutorial house");
+    assert.ok(!houses[h], "tutorial dup");
+    houses[h] = 1;
+  });
+});
+assert.ok(tutor.steps && tutor.steps.length >= 4, "tutorial steps");
+tutor.steps.forEach(function (step, i) {
+  var house = tutor.solution[step.ci][step.vi];
+  if (step.kind === "yes") assert.strictEqual(house, step.h, "tutorial yes " + i);
+  if (step.kind === "no") assert.notStrictEqual(house, step.h, "tutorial no " + i);
+});
+
+var mark = tutor.cats.map(function (cat) { return cat.values.map(function () { return -1; }); });
+var absent = tutor.cats.map(function (cat) { return cat.values.map(function () { return {}; }); });
+function tapTutorCell(step) {
+  var ci = step.ci, vi = step.vi, h = step.h;
+  if (mark[ci][vi] === h) { mark[ci][vi] = -1; absent[ci][vi][h] = true; }
+  else if (absent[ci][vi][h]) absent[ci][vi][h] = false;
+  else {
+    mark[ci][vi] = h;
+    for (var v = 0; v < mark[ci].length; v++) if (v !== vi && mark[ci][v] === h) mark[ci][v] = -1;
+  }
+}
+tutor.steps.forEach(function (step, i) {
+  tapTutorCell(step);
+  if (step.kind === "no") tapTutorCell(step);
+  tutor.steps.slice(0, i).forEach(function (prev) {
+    if (prev.kind === "yes") assert.strictEqual(mark[prev.ci][prev.vi], prev.h, "tutorial keeps check " + i);
+    if (prev.kind === "no") assert.strictEqual(!!absent[prev.ci][prev.vi][prev.h], true, "tutorial keeps cross " + i);
+  });
+  if (step.kind === "yes") assert.strictEqual(mark[step.ci][step.vi], step.h, "tutorial placed " + i);
+  if (step.kind === "no") assert.strictEqual(!!absent[step.ci][step.vi][step.h], true, "tutorial crossed " + i);
+});
+
 console.log("logic-puzzles tests ok");
