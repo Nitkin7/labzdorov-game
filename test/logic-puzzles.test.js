@@ -1,7 +1,7 @@
 /* Каждый уровень прототипа: ровно одно решение, не сверка с сохранённым ответом вслепую. */
 var assert = require("assert");
 var engine = require("../prototype/engine.js");
-var data = require("../prototype/puzzles.js");
+var data = require("../js/logic-data.js");
 
 assert.strictEqual(data.sudoku.length, 15);
 assert.strictEqual(data.logic.length, 15);

@@ -404,7 +404,7 @@ function build() {
 
   var data = { logic: logic, sudoku: sudoku, kakuro: kakuro, pattern: pattern };
   var body = "(function (root) {\n  var data = " + JSON.stringify(data) + ";\n  if (typeof module === \"object\" && module.exports) module.exports = data;\n  else root.LZ_PUZZLES = data;\n})(typeof globalThis !== \"undefined\" ? globalThis : this);\n";
-  fs.writeFileSync(path.join(__dirname, "puzzles.js"), body);
+  fs.writeFileSync(path.join(__dirname, "../js/logic-data.js"), body);
   console.log("wrote puzzles", sudoku.length, logic.length, kakuro.length, pattern.length);
 }
 

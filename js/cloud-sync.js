@@ -5,8 +5,8 @@
 (function (root) {
   "use strict";
 
-  var GAME_KEYS = ["lz_farm_v1", "lz_game_v1", "lz_brain_v1"];
-  var PREFIX = { lz_farm_v1: "lzf", lz_game_v1: "lzg", lz_brain_v1: "lzb" };
+  var GAME_KEYS = ["lz_farm_v1", "lz_game_v1", "lz_brain_v1", "lz_logic_v1"];
+  var PREFIX = { lz_farm_v1: "lzf", lz_game_v1: "lzg", lz_brain_v1: "lzb", lz_logic_v1: "lzl" };
   var META = "lzm";
   var AT_KEY = "lz_sync_at";
   var CHUNK = 3000;
@@ -110,7 +110,7 @@
         ((res && res.keys) || []).forEach(function (row) { if (row && row.key) map[row.key] = row.value || ""; });
         var meta = {};
         try { meta = JSON.parse(map[META] || "{}") || {}; } catch (e) { meta = {}; }
-        if (!meta.at) return { at: 0, values: { lz_farm_v1: null, lz_game_v1: null, lz_brain_v1: null } };
+        if (!meta.at) return { at: 0, values: { lz_farm_v1: null, lz_game_v1: null, lz_brain_v1: null, lz_logic_v1: null } };
         var need = storageKeysFor(meta).filter(function (k) { return k !== META; });
         if (!need.length) return unpack(map);
         return send("VKWebAppStorageGet", { keys: need }).then(function (res2) {
@@ -136,7 +136,8 @@
       try {
         GAME_KEYS.forEach(function (k) {
           var v = cloud.values[k];
-          if (v == null || v === "") removeItem(k);
+          if (v == null) return;
+          if (v === "") removeItem(k);
           else if (validJson(v)) setItem(k, v);
         });
         setItem(AT_KEY, String(cloud.at || 0));
@@ -147,6 +148,7 @@
       if (root.LZFarm && LZFarm.reloadProgress) LZFarm.reloadProgress();
       if (root.LZBrain && LZBrain.reloadProgress) LZBrain.reloadProgress();
       if (root.LZ && LZ.reloadProgress) LZ.reloadProgress();
+      if (root.LZLogic && LZLogic.reloadProgress) LZLogic.reloadProgress();
     }
     function push() {
       var local = readLocal();

@@ -1,15 +1,12 @@
-/* Прототип взрослых задач. В меню игры не входит. Прогресс: localStorage lz_logic_v1. */
+/* Лаборатория здоровья — «Логические задачи». Прогресс: lz_logic_v1. */
 (function () {
   "use strict";
   var DATA = window.LZ_PUZZLES;
   var KEY = "lz_logic_v1";
-  var app = document.getElementById("app");
-  var toastEl = document.getElementById("toast");
-  var toastTimer = 0;
-  var saveTimer = 0;
   var clockTimer = 0;
   var state = load();
   var view = { name: "hub" };
+  function L() { return window.LZ; }
 
   var NAMES = { logic: "Логическая таблица", sudoku: "Судоку", kakuro: "Какуро", pattern: "Закономерности" };
 
@@ -54,12 +51,7 @@
       done();
     }, function () { done(); });
   }
-  function toast(msg) {
-    toastEl.textContent = msg;
-    toastEl.hidden = false;
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { toastEl.hidden = true; }, 2000);
-  }
+  function toast(msg) { if (L()) L().toast(msg); }
   function tone(ok) {
     if (!state.sound) return;
     try {
@@ -96,11 +88,31 @@
   function bestKey() { return view.id + ":" + view.level; }
   function elapsed() { return Date.now() - (view.t0 || Date.now()); }
 
-  function html(s) { app.innerHTML = s; bind(); }
-  function bind() {
-    app.querySelectorAll("[data-act]").forEach(function (node) {
+  function rootEl() {
+    if (view.name === "win") return document.getElementById("logic-result-root");
+    if (view.name === "logic" || view.name === "sudoku" || view.name === "kakuro" || view.name === "pattern") return document.getElementById("logic-play-root");
+    return document.getElementById("logic-intro-root");
+  }
+  function html(s) {
+    var root = rootEl();
+    if (!root) return;
+    root.innerHTML = s;
+    bind(root);
+  }
+  function bind(root) {
+    root.querySelectorAll("[data-act]").forEach(function (node) {
       node.addEventListener("click", function () { act(node.getAttribute("data-act"), node); });
     });
+  }
+  function screenFor(name) {
+    if (name === "win") return "logic-result";
+    if (name === "logic" || name === "sudoku" || name === "kakuro" || name === "pattern") return "logic";
+    return "logic-intro";
+  }
+  function reveal() {
+    var name = screenFor(view.name);
+    if (L() && L().current && L().current() !== name) L().go(name, name === "logic-result");
+    else render();
   }
   function tools() {
     return '<div class="tools">' +
@@ -117,6 +129,7 @@
   }
 
   function render() {
+    document.body.classList.toggle("lg-play", view.name === "logic" || view.name === "sudoku" || view.name === "kakuro" || view.name === "pattern" || view.name === "win");
     clearInterval(clockTimer);
     if (view.name === "hub") renderHub();
     else if (view.name === "levels") renderLevels();
@@ -136,8 +149,8 @@
     var d = dailyRef();
     var doneDaily = state.daily === dayStamp() && state.dailyId === d.id + ":" + d.level;
     html(
-      "<h1>Логические задачи</h1><div class=\"gold\"></div>" +
-      '<p class="note">Прототип для взрослых. В меню игры пока не входит. Без спешки.</p>' +
+      '<h1 id="lg-intro-title">Логические задачи</h1><div class="gold"></div>' +
+      '<p class="note">Таблицы, судоку, какуро и ряды. Без спешки и без штрафа за ошибку.</p>' +
       '<div class="tools"><button class="btn' + (state.sound ? " on" : "") + '" type="button" data-act="sound">Звук</button>' +
       '<button class="btn' + (state.showTime ? " on" : "") + '" type="button" data-act="time">Время</button></div>' +
       '<button class="card daily" type="button" data-act="daily"><b>Задача дня</b><br>' + NAMES[d.id] + ", ступень " + (d.level + 1) +
@@ -181,7 +194,7 @@
     } else if (id === "pattern") {
       view.hidden = {};
     }
-    render();
+    reveal();
   }
   function snapshot() {
     view.undo.push(JSON.stringify({
@@ -305,8 +318,8 @@
     html(head("Верно") + '<div class="card"><h2>' + NAMES[view.id] + ", ступень " + (view.level + 1) + "</h2>" +
       '<p class="why">' + esc(view.why || "Решение сходится.") + "</p>" +
       "<p>Время: " + fmt(view.spent || 0) + (best ? ". Лучшее: " + fmt(best) : "") + ".</p>" +
-      "<p>В полной игре первая решённая задача такого вида за день дала бы монеты и опыт в огород. Здесь счёт огорода не меняется.</p>" +
-      '<button class="btn gold" type="button" data-act="share">Поделиться</button>' +
+      '<p id="lg-reward">' + esc(view.reward || "") + "</p>" +
+      (view.wasDaily ? '<button class="btn gold" type="button" data-act="share">Поделиться задачей дня</button>' : "") +
       '<button class="btn gold" type="button" data-act="next">Дальше</button></div>');
   }
 
@@ -316,9 +329,13 @@
     if (name === "errors") { state.errors = !state.errors; persist(); render(); return; }
     if (name === "notes") { view.notes = !view.notes; render(); return; }
     if (name === "back") {
-      if (view.name === "levels" || view.name === "win") view = { name: "hub" };
-      else if (view.name !== "hub") view = { name: "levels", id: view.id };
-      render(); return;
+      if (view.name === "levels") { view = { name: "hub" }; render(); return; }
+      if (view.name === "hub") { if (L()) L().go("brain"); return; }
+      var backId = view.id;
+      view = { name: "levels", id: backId };
+      if (L() && L().current && L().current() !== "logic-intro") L().go("logic-intro");
+      else render();
+      return;
     }
     if (name === "open") { view = { name: "levels", id: node.getAttribute("data-id") }; render(); return; }
     if (name === "daily") { var d = dailyRef(); start(d.id, d.level); return; }
@@ -334,7 +351,7 @@
     if (name === "pick") return pick(+node.getAttribute("data-n"));
     if (name === "next") {
       if (view.level < 14) start(view.id, view.level + 1);
-      else { var id = view.id; view = { name: "levels", id: id }; render(); }
+      else { var id = view.id; view = { name: "levels", id: id }; if (L()) L().go("logic-intro"); else render(); }
       return;
     }
     if (name === "share") share();
@@ -452,44 +469,82 @@
     if (n === p.answer) win(p.why);
     else { tone(false); view.clue = "Не то. Очки не снимаются."; render(); }
   }
+  function variantOf(id, level) {
+    if (id === "logic") return level < 8 ? "lg4" : "lg5";
+    if (id === "sudoku") return level < 6 ? "sd6" : "sd9";
+    if (id === "kakuro") return "kak";
+    return level < 8 ? "pat" : "pth";
+  }
+  function xpWord(n) {
+    return n + " " + (L() ? L().plural(n, "опыт", "опыта", "опыта") : "опыта");
+  }
   function win(why) {
     tone(true);
     var spent = elapsed();
+    var daily = dailyRef();
+    var isDaily = daily.id === view.id && daily.level === view.level;
     view.spent = spent;
     view.why = why;
+    view.wasDaily = isDaily;
     state.done[view.id][view.level] = true;
     var key = bestKey();
     if (!state.best[key] || spent < state.best[key]) state.best[key] = spent;
-    var daily = dailyRef();
-    if (daily.id === view.id && daily.level === view.level) {
+    if (isDaily) {
       state.daily = dayStamp();
       state.dailyId = daily.id + ":" + daily.level;
     }
     persist();
+    var reward = { coins: 0, xp: 0, daily: 0, streak: 1, already: false };
+    if (window.LZFarm && LZFarm.onLogic) reward = LZFarm.onLogic(variantOf(view.id, view.level), isDaily) || reward;
+    var bits = [];
+    if (reward.coins && L()) bits.push("+" + reward.coins + " " + L().plural(reward.coins, "монета", "монеты", "монет"));
+    if (reward.xp) bits.push("+" + xpWord(reward.xp));
+    if (reward.daily && L()) bits.push("задача дня +" + reward.daily + " " + L().plural(reward.daily, "монета", "монеты", "монет"));
+    var streak = "Серия " + reward.streak + " " + (L() ? L().plural(reward.streak, "день", "дня", "дней") : "дн.");
+    view.reward = bits.length ? "В огород: " + bits.join(", ") + ". " + streak : "Бонус этого вида сегодня уже получен. " + streak;
+    toast(view.reward);
     view.name = "win";
-    render();
+    reveal();
   }
   function dayStamp() {
     var d = new Date();
     return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
   }
   function share() {
-    var text = "Решила серьёзную задачку в «Лаборатории здоровья»: " + NAMES[view.id] + ", ступень " + (view.level + 1) + ".";
-    var url = "https://igra.orkestr.online/";
-    if (navigator.share) {
-      navigator.share({ title: "Лаборатория здоровья", text: text, url: url }).then(function () {
-        toast("Готово. Можно отправить друзьям.");
-      }, function (err) {
-        if (err && err.name === "AbortError") toast("Окно закрыто. Поделиться можно позже.");
-        else copy(text + "\n" + url);
-      });
-    } else copy(text + "\n" + url);
-  }
-  function copy(text) {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(function () { toast("Скопировано"); }, function () { toast("Скопировано"); });
-    } else toast("Скопировано");
+    var text = "Задача дня в «Лаборатории здоровья»: " + (NAMES[view.id] || "логическая задача") + ", ступень " + ((view.level || 0) + 1) + ".";
+    toast("Открываем окно, чтобы поделиться…");
+    if (!(window.Platform && Platform.share)) { toast("Не получилось поделиться. Попробуйте ещё раз."); return; }
+    Platform.share(text).then(function (r) {
+      if (r === "shared") toast("Готово. Можно отправить друзьям.");
+      else if (r === "copied") toast("Скопировано");
+      else if (r === "cancelled") toast("Окно закрыто. Поделиться можно позже.");
+      else toast("Не получилось поделиться. Попробуйте ещё раз.");
+    });
   }
 
-  pullCloud(function () { render(); });
+  function onShow(name) {
+    if (name !== "logic-intro" && name !== "logic" && name !== "logic-result") return;
+    if (name === "logic-intro") {
+      if (view.name === "win" && view.id) view = { name: "levels", id: view.id };
+      else if (view.name !== "levels") view = { name: "hub" };
+    }
+    render();
+  }
+  function reloadProgress() { state = load(); }
+  if (window.LZBrain) LZBrain.register({
+    id: "logic",
+    n: "Логические задачи",
+    d: "Таблицы, судоку, какуро и ряды",
+    screen: "logic-intro",
+    status: function () {
+      var n = 0;
+      ["logic", "sudoku", "kakuro", "pattern"].forEach(function (id) { n += (state.done[id] || []).filter(Boolean).length; });
+      var farm = window.LZFarm && LZFarm.brainStatus ? LZFarm.brainStatus("logic") : "";
+      return "Пройдено " + n + " из 60" + (farm ? ". " + farm : "");
+    },
+    title: function () { return null; },
+    onShow: onShow
+  });
+  window.LZLogic = { reloadProgress: reloadProgress };
+  pullCloud(function () {});
 })();
