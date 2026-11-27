@@ -1,65 +1,58 @@
-/* Прототип «Логические задачи». Не подключён к меню и не пишет в сохранения игры. */
+/* Прототип взрослых задач. В меню игры не входит. Прогресс: localStorage lz_logic_v1. */
 (function () {
   "use strict";
+  var DATA = window.LZ_PUZZLES;
+  var KEY = "lz_logic_v1";
   var app = document.getElementById("app");
   var toastEl = document.getElementById("toast");
   var toastTimer = 0;
-  var soundOn = true;
-  var audio;
+  var saveTimer = 0;
+  var clockTimer = 0;
+  var state = load();
   var view = { name: "hub" };
 
-  var ODD = [
-    { items: ["Ромашка", "Мята", "Календула", "Молоток"], answer: 3, hint: "Три из них растут на грядке.", why: "Молоток — инструмент. Остальные — травы." },
-    { items: ["Чашка", "Блюдце", "Чайник", "Ботинок"], answer: 3, hint: "Три предмета ставят на стол к чаю.", why: "Ботинок не чайная посуда." },
-    { items: ["Понедельник", "Вторник", "Среда", "Яблоко"], answer: 3, hint: "Три слова — это дни недели.", why: "Яблоко не день недели." },
-    { items: ["Яблоко", "Груша", "Слива", "Морковь"], answer: 3, hint: "Три из них — фрукты.", why: "Морковь — овощ, остальные фрукты." },
-    { items: ["Весна", "Лето", "Осень", "Стол"], answer: 3, hint: "Три слова называют времена года.", why: "Стол не время года." },
-    { items: ["Ложка", "Вилка", "Нож", "Книга"], answer: 3, hint: "Три предмета берут за едой.", why: "Книгу за обедом не кладут в тарелку." },
-    { items: ["Кошка", "Собака", "Курица", "Самовар"], answer: 3, hint: "Трое из них живые.", why: "Самовар — посуда для кипятка." },
-    { items: ["Шарф", "Варежки", "Шапка", "Арбуз"], answer: 3, hint: "Три вещи надевают в холод.", why: "Арбуз — летнее угощение, не одежда." },
-    { items: ["Мёд", "Варенье", "Чай", "Топор"], answer: 3, hint: "Три из них можно поставить к чаепитию.", why: "Топор — инструмент, не угощение." },
-    { items: ["Январь", "Февраль", "Март", "Пятница"], answer: 3, hint: "Три слова — месяцы.", why: "Пятница — день недели, не месяц." }
-  ];
-  var SEQ = [
-    { show: ["2", "4", "6", "8"], choices: ["9", "10", "12"], answer: 1, hint: "Каждое число больше предыдущего на 2.", why: "Дальше идёт 10." },
-    { show: ["1", "3", "5", "7"], choices: ["8", "9", "10"], answer: 1, hint: "Это нечётные числа подряд.", why: "После 7 будет 9." },
-    { show: ["5", "10", "15", "20"], choices: ["22", "25", "30"], answer: 1, hint: "Каждый шаг прибавляет 5.", why: "20 и ещё 5 — это 25." },
-    { show: ["1", "2", "4", "8"], choices: ["10", "12", "16"], answer: 2, hint: "Каждое число вдвое больше предыдущего.", why: "8 умножить на 2 — 16." },
-    { show: ["Пн", "Вт", "Ср", "Чт"], choices: ["Пт", "Сб", "Вс"], answer: 0, hint: "Дни недели по порядку.", why: "После четверга — пятница." },
-    { show: ["Янв", "Фев", "Мар", "Апр"], choices: ["Май", "Июн", "Июл"], answer: 0, hint: "Месяцы идут как в календаре.", why: "После апреля — май." },
-    { show: ["3", "6", "9", "12"], choices: ["13", "15", "18"], answer: 1, hint: "Считаем по три.", why: "12 и ещё 3 — это 15." },
-    { show: ["10", "20", "30", "40"], choices: ["45", "50", "60"], answer: 1, hint: "Каждый раз прибавляем 10.", why: "После 40 будет 50." },
-    { show: ["1", "1", "2", "3", "5"], choices: ["6", "7", "8"], answer: 2, hint: "Каждое число — сумма двух предыдущих.", why: "3 и 5 в сумме дают 8." },
-    { show: ["Утро", "День", "Вечер"], choices: ["Ночь", "Зима", "Обед"], answer: 0, hint: "Это части одних суток по порядку.", why: "После вечера наступает ночь." }
-  ];
-  var SUDO = [
-    { sol: "1234341221434321", giv: "0234301221034320" },
-    { sol: "4321214312343412", giv: "0321204312043410" },
-    { sol: "4321214312343412", giv: "0301204312043410" },
-    { sol: "4312213434211243", giv: "0302203434011240" },
-    { sol: "1342243131244213", giv: "0302203031044210" },
-    { sol: "1342243142133124", giv: "0302203042033120" },
-    { sol: "1432234132144123", giv: "0402204002044120" },
-    { sol: "1342243142133124", giv: "0302203002033120" },
-    { sol: "2314142332414132", giv: "0304102002014030" },
-    { sol: "3214143223414123", giv: "0204103003014020" }
-  ];
+  var NAMES = { logic: "Логическая таблица", sudoku: "Судоку", kakuro: "Какуро", pattern: "Закономерности" };
 
   function load() {
-    try { return JSON.parse(sessionStorage.getItem("lz_logic_proto") || "{}"); }
-    catch (e) { return {}; }
+    try {
+      var raw = JSON.parse(localStorage.getItem(KEY) || "null");
+      if (!raw || typeof raw !== "object") raw = {};
+    } catch (e) { raw = {}; }
+    raw.v = 1;
+    raw.at = raw.at || 0;
+    raw.done = raw.done || {};
+    raw.best = raw.best || {};
+    raw.showTime = !!raw.showTime;
+    raw.sound = raw.sound !== false;
+    raw.errors = !!raw.errors;
+    ["logic", "sudoku", "kakuro", "pattern"].forEach(function (id) {
+      if (!Array.isArray(raw.done[id])) raw.done[id] = [];
+    });
+    return raw;
   }
-  function save(data) { try { sessionStorage.setItem("lz_logic_proto", JSON.stringify(data)); } catch (e) {} }
-  function doneCount(id) {
-    var d = load()[id] || [];
-    return d.filter(Boolean).length;
+  function persist() {
+    state.at = Date.now();
+    var text = JSON.stringify(state);
+    try { localStorage.setItem(KEY, text); } catch (e) {}
+    if (window.vkBridge && vkBridge.send && text.length <= 4096) {
+      vkBridge.send("VKWebAppStorageSet", { key: KEY, value: text }).catch(function () {});
+    }
   }
-  function markDone(id, level) {
-    var all = load();
-    var row = all[id] || [];
-    row[level] = true;
-    all[id] = row;
-    save(all);
+  function pullCloud(done) {
+    if (!(window.vkBridge && vkBridge.send)) { done(); return; }
+    vkBridge.send("VKWebAppStorageGet", { keys: [KEY] }).then(function (res) {
+      var row = ((res && res.keys) || []).filter(function (k) { return k.key === KEY; })[0];
+      if (row && row.value) {
+        try {
+          var remote = JSON.parse(row.value);
+          if (remote && remote.at > (state.at || 0)) {
+            localStorage.setItem(KEY, row.value);
+            state = load();
+          }
+        } catch (e) {}
+      }
+      done();
+    }, function () { done(); });
   }
   function toast(msg) {
     toastEl.textContent = msg;
@@ -68,205 +61,435 @@
     toastTimer = setTimeout(function () { toastEl.hidden = true; }, 2000);
   }
   function tone(ok) {
-    if (!soundOn) return;
+    if (!state.sound) return;
     try {
-      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
-      var o = audio.createOscillator(), g = audio.createGain();
-      o.frequency.value = ok ? 520 : 220;
-      g.gain.setValueAtTime(0.0001, audio.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.05, audio.currentTime + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + 0.18);
-      o.connect(g); g.connect(audio.destination); o.start(); o.stop(audio.currentTime + 0.2);
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      var ctx = tone.ctx || (tone.ctx = new Ctx());
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.value = ok ? 523 : 196;
+      g.gain.setValueAtTime(0.0001, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.04, ctx.currentTime + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.16);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(); o.stop(ctx.currentTime + 0.18);
     } catch (e) {}
   }
-  function el(html) { app.innerHTML = html; bind(); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function fig(cell) {
+    var bits = "";
+    for (var i = 0; i < cell.n; i++) bits += '<i class="fig ' + cell.s + " " + cell.f + '" style="width:14px;height:14px"></i>';
+    return '<span class="figbox">' + bits + "</span>";
+  }
+  function fmt(ms) {
+    var s = Math.round(ms / 1000), m = (s / 60) | 0;
+    return m + ":" + String(s % 60).padStart(2, "0");
+  }
+  function dayIndex() {
+    var days = Math.floor((new Date() - new Date(2026, 0, 1)) / 864e5);
+    return ((days % 60) + 60) % 60;
+  }
+  function dailyRef() {
+    var ids = ["logic", "sudoku", "kakuro", "pattern"];
+    var n = dayIndex();
+    return { id: ids[(n / 15) | 0], level: n % 15 };
+  }
+  function bestKey() { return view.id + ":" + view.level; }
+  function elapsed() { return Date.now() - (view.t0 || Date.now()); }
+
+  function html(s) { app.innerHTML = s; bind(); }
   function bind() {
     app.querySelectorAll("[data-act]").forEach(function (node) {
-      node.addEventListener("click", function () { onAct(node.getAttribute("data-act"), node); });
+      node.addEventListener("click", function () { act(node.getAttribute("data-act"), node); });
     });
   }
-  function head(title) {
-    return '<div class="top"><button class="back" type="button" data-act="back">← Назад</button><b>' + title + '</b>' +
-      '<button class="sound" type="button" data-act="sound" aria-pressed="' + soundOn + '">' + (soundOn ? "Звук" : "Тихо") + "</button></div>";
+  function tools() {
+    return '<div class="tools">' +
+      '<button class="btn' + (state.showTime ? " on" : "") + '" type="button" data-act="time">Время</button>' +
+      '<button class="btn' + (state.sound ? " on" : "") + '" type="button" data-act="sound">Звук</button>' +
+      '<button class="btn" type="button" data-act="hint">Подсказка ' + (view.hintsLeft == null ? "" : view.hintsLeft) + "</button>" +
+      (view.undo ? '<button class="btn" type="button" data-act="undo">Отменить</button>' : "") +
+      (view.id === "sudoku" ? '<button class="btn' + (state.errors ? " on" : "") + '" type="button" data-act="errors">Ошибки</button><button class="btn' + (view.notes ? " on" : "") + '" type="button" data-act="notes">Карандаш</button>' : "") +
+      "</div>";
   }
-  function hintBtn() {
-    return '<button class="hint" type="button" data-act="hint">Подсказка</button>';
+  function head(title) {
+    var clock = state.showTime ? '<div class="msg" id="clock">' + fmt(elapsed()) + "</div>" : "";
+    return '<div class="top"><button class="btn" type="button" data-act="back">← Назад</button><b>' + title + "</b></div>" + clock;
   }
 
   function render() {
-    if (view.name === "hub") return renderHub();
-    if (view.name === "levels") return renderLevels();
-    if (view.name === "odd") return renderOdd();
-    if (view.name === "seq") return renderSeq();
-    if (view.name === "sudo") return renderSudo();
-    if (view.name === "win") return renderWin();
+    clearInterval(clockTimer);
+    if (view.name === "hub") renderHub();
+    else if (view.name === "levels") renderLevels();
+    else if (view.name === "logic") renderLogic();
+    else if (view.name === "sudoku") renderSudoku();
+    else if (view.name === "kakuro") renderKakuro();
+    else if (view.name === "pattern") renderPattern();
+    else if (view.name === "win") renderWin();
+    if (state.showTime && view.t0 && view.name !== "hub" && view.name !== "levels" && view.name !== "win") {
+      clockTimer = setInterval(function () {
+        var el = document.getElementById("clock");
+        if (el) el.textContent = fmt(elapsed());
+      }, 400);
+    }
   }
   function renderHub() {
-    el(
-      "<h1>Логические задачи</h1>" +
-      '<p class="note">Прототип. В меню игры пока не входит. Спешить не нужно.</p>' +
-      '<div class="top"><span></span>' +
-      '<button class="sound" type="button" data-act="sound" aria-pressed="' + soundOn + '">' + (soundOn ? "Звук" : "Тихо") + "</button></div>" +
-      '<div class="games">' +
-      gameCard("odd", "Что лишнее", "Четыре картинки словами. Одно не из этой компании.") +
-      gameCard("seq", "Продолжи ряд", "Какое число или слово идёт дальше.") +
-      gameCard("sudo", "Судоку 4×4", "Цифры от 1 до 4 без повторов.") +
-      "</div>"
+    var d = dailyRef();
+    var doneDaily = state.daily === dayStamp() && state.dailyId === d.id + ":" + d.level;
+    html(
+      "<h1>Логические задачи</h1><div class=\"gold\"></div>" +
+      '<p class="note">Прототип для взрослых. В меню игры пока не входит. Без спешки.</p>' +
+      '<div class="tools"><button class="btn' + (state.sound ? " on" : "") + '" type="button" data-act="sound">Звук</button>' +
+      '<button class="btn' + (state.showTime ? " on" : "") + '" type="button" data-act="time">Время</button></div>' +
+      '<button class="card daily" type="button" data-act="daily"><b>Задача дня</b><br>' + NAMES[d.id] + ", ступень " + (d.level + 1) +
+      (doneDaily ? " · уже решена" : " · одна на сегодня") + "</button>" +
+      '<div class="games">' + card("logic", "Дома, дела, города и годы. Отметьте клетка за клеткой.") +
+      card("sudoku", "Поле 6×6, затем 9×9. Карандаш, отмена, подсветка ошибок.") +
+      card("kakuro", "Суммы по рядам. Цифры не повторяются. Клетки крупные.") +
+      card("pattern", "Ряды, аналогии и фигуры. Правила не с первого взгляда.") + "</div>"
     );
   }
-  function gameCard(id, title, text) {
-    return '<button class="game" type="button" data-act="open" data-id="' + id + '"><b>' + title + '</b><span>' + text +
-      '</span><span class="progress">Пройдено ' + doneCount(id) + " из 10</span></button>";
+  function card(id, text) {
+    var n = state.done[id].filter(Boolean).length;
+    return '<button class="game" type="button" data-act="open" data-id="' + id + '"><b>' + NAMES[id] + "</b><span>" + text +
+      '</span><br><em>Пройдено ' + n + " из 15</em></button>";
   }
   function renderLevels() {
-    var names = { odd: "Что лишнее", seq: "Продолжи ряд", sudo: "Судоку 4×4" };
-    var row = load()[view.id] || [];
     var buttons = "";
-    for (var i = 0; i < 10; i++) {
-      buttons += '<button class="lv' + (row[i] ? " done" : "") + '" type="button" data-act="level" data-n="' + i + '">' + (i + 1) + "</button>";
+    for (var i = 0; i < 15; i++) {
+      var best = state.best[view.id + ":" + i];
+      buttons += '<button class="lv' + (state.done[view.id][i] ? " done" : "") + '" type="button" data-act="level" data-n="' + i + '">' +
+        (i + 1) + (best ? "<small>" + fmt(best) + "</small>" : "") + "</button>";
     }
-    el(head(names[view.id]) + '<p class="note">Выберите ступень. Пройденные можно решать снова.</p><div class="levels">' + buttons + "</div>");
-  }
-  function renderOdd() {
-    var p = ODD[view.level];
-    var cards = p.items.map(function (name, i) {
-      return '<button class="choice" type="button" data-act="pick" data-n="' + i + '">' + name + "</button>";
-    }).join("");
-    el(head((view.level + 1) + " из 10") + hintBtn() +
-      '<h2 class="q">Что здесь лишнее?</h2><p class="msg" id="msg">' + (view.clue || "") + '</p><div class="choices">' + cards + "</div>");
-  }
-  function renderSeq() {
-    var p = SEQ[view.level];
-    var chips = p.show.map(function (x) { return '<span class="chip">' + x + "</span>"; }).join("") + '<span class="chip">?</span>';
-    var answers = p.choices.map(function (x, i) {
-      return '<button type="button" data-act="pick" data-n="' + i + '">' + x + "</button>";
-    }).join("");
-    el(head((view.level + 1) + " из 10") + hintBtn() +
-      '<h2 class="q">Что дальше?</h2><div class="rowshow">' + chips + '</div><p class="msg" id="msg">' + (view.clue || "") +
-      '</p><div class="answers">' + answers + "</div>");
-  }
-  function cellsOf(str) { return str.split("").map(function (ch) { return +ch; }); }
-  function renderSudo() {
-    if (!view.grid) {
-      view.grid = cellsOf(SUDO[view.level].giv);
-      view.given = view.grid.map(function (n) { return n !== 0; });
-      view.sel = 0;
-      while (view.given[view.sel]) view.sel = (view.sel + 1) % 16;
-    }
-    var cells = view.grid.map(function (n, i) {
-      var cls = "cell" + (view.given[i] ? " given" : "") + (view.sel === i ? " on" : "") + (view.bad && view.bad[i] ? " bad" : "");
-      return '<button class="' + cls + '" type="button" data-act="cell" data-n="' + i + '"' + (view.given[i] ? " disabled" : "") + ">" + (n || "") + "</button>";
-    }).join("");
-    var pad = [1, 2, 3, 4].map(function (n) {
-      return '<button type="button" data-act="num" data-n="' + n + '">' + n + "</button>";
-    }).join("");
-    el(head((view.level + 1) + " из 10") + hintBtn() +
-      '<h2 class="q">Цифры 1–4 в каждом ряду</h2><p class="msg" id="msg">' + (view.clue || "В строке, столбце и квадрате 2×2 без повторов.") +
-      '</p><div class="grid">' + cells + '</div><div class="pad">' + pad + "</div>");
-  }
-  function renderWin() {
-    var names = { odd: "Что лишнее", seq: "Продолжи ряд", sudo: "Судоку 4×4" };
-    var coins = view.id === "sudo" ? 15 : 10;
-    el(head("Верно") +
-      '<div class="card"><h2>' + names[view.id] + ", ступень " + (view.level + 1) + '</h2><p class="why">' + view.why + "</p>" +
-      "<p>В настоящей игре за первую такую задачу сегодня огород получил бы +" + coins + " монет и немного опыта. Здесь монеты не начисляются.</p>" +
-      '<button class="next" type="button" data-act="share">Поделиться</button>' +
-      '<button class="next" type="button" data-act="next">Дальше</button></div>');
+    html(head(NAMES[view.id]) + '<p class="note">От лёгких к трудным. Время можно скрыть — лучшее всё равно запомнится.</p><div class="levels">' + buttons + "</div>");
   }
 
-  function onAct(act, node) {
-    if (act === "sound") { soundOn = !soundOn; render(); return; }
-    if (act === "back") {
-      if (view.name === "levels" || view.name === "win") view = { name: "hub" };
-      else if (view.name === "hub") return;
-      else view = { name: "levels", id: view.id };
-      render(); return;
+  function start(id, level) {
+    var puzzle = DATA[id][level];
+    view = { name: id, id: id, level: level, hintsLeft: 3, t0: Date.now(), undo: [], notes: false, clue: "" };
+    if (id === "logic") {
+      view.mark = puzzle.cats.map(function (cat) { return cat.values.map(function () { return -1; }); });
+      view.no = puzzle.cats.map(function (cat) { return cat.values.map(function () { return {}; }); });
+    } else if (id === "sudoku") {
+      view.grid = puzzle.givens.split("").map(Number);
+      view.given = view.grid.map(function (n) { return n > 0; });
+      view.pencil = view.grid.map(function () { return {}; });
+      view.sel = 0;
+      while (view.given[view.sel]) view.sel = (view.sel + 1) % view.grid.length;
+    } else if (id === "kakuro") {
+      view.grid = puzzle.solution.split("").map(function () { return 0; });
+      view.sel = 0;
+    } else if (id === "pattern") {
+      view.hidden = {};
     }
-    if (act === "open") { view = { name: "levels", id: node.getAttribute("data-id") }; render(); return; }
-    if (act === "level") { openLevel(view.id, +node.getAttribute("data-n")); return; }
-    if (act === "hint") { giveHint(); return; }
-    if (act === "pick") { pick(+node.getAttribute("data-n"), node); return; }
-    if (act === "cell") { view.sel = +node.getAttribute("data-n"); view.bad = null; render(); return; }
-    if (act === "num") { putNum(+node.getAttribute("data-n")); return; }
-    if (act === "next") {
-      if (view.level < 9) openLevel(view.id, view.level + 1);
-      else view = { name: "levels", id: view.id };
-      render(); return;
-    }
-    if (act === "share") share();
-  }
-  function openLevel(id, n) {
-    view = { name: id, id: id, level: n, clue: "" };
     render();
   }
-  function giveHint() {
-    if (view.name === "odd") { view.clue = ODD[view.level].hint; tone(true); render(); return; }
-    if (view.name === "seq") { view.clue = SEQ[view.level].hint; tone(true); render(); return; }
-    if (view.name === "sudo") {
-      var sol = cellsOf(SUDO[view.level].sol);
-      for (var i = 0; i < 16; i++) if (!view.given[i] && view.grid[i] !== sol[i]) {
+  function snapshot() {
+    view.undo.push(JSON.stringify({
+      mark: view.mark, no: view.no, grid: view.grid, pencil: view.pencil, sel: view.sel, hidden: view.hidden
+    }));
+    if (view.undo.length > 40) view.undo.shift();
+  }
+
+  function renderLogic() {
+    var p = DATA.logic[view.level];
+    var cols = p.n;
+    var body = p.cats.map(function (cat, ci) {
+      var rows = cat.values.map(function (val, vi) {
+        var cells = "";
+        for (var h = 0; h < p.n; h++) {
+          var cls = "cell";
+          if (view.mark[ci][vi] === h) cls += " yes";
+          else if (view.no[ci][vi][h]) cls += " no";
+          cells += '<button class="' + cls + '" type="button" data-act="logic" data-c="' + ci + '" data-v="' + vi + '" data-h="' + h + '">' +
+            (view.mark[ci][vi] === h ? "✓" : view.no[ci][vi][h] ? "✗" : "") + "</button>";
+        }
+        return "<div>" + val + "</div>" + cells;
+      }).join("");
+      return '<div class="group"><h3>' + esc(cat.title) + '</h3><div class="grid logic-grid" style="grid-template-columns:92px repeat(' + cols + ',1fr)">' +
+        '<div></div>' + rangeLabels(p.n) + rows + "</div></div>";
+    }).join("");
+    html(head((view.level + 1) + " из 15") + tools() +
+      '<div class="card clues"><ol>' + p.clues.map(function (c) { return "<li>" + esc(c.text) + "</li>"; }).join("") + "</ol></div>" +
+      '<p class="msg">' + esc(view.clue || "Пусто → ✓ → ✗. В каждом ряду одна галочка.") + "</p>" + body +
+      '<button class="btn gold" type="button" data-act="check">Проверить</button>');
+  }
+  function rangeLabels(n) {
+    var s = "";
+    for (var i = 1; i <= n; i++) s += '<div class="msg">Дом ' + i + "</div>";
+    return s;
+  }
+  function renderSudoku() {
+    var p = DATA.sudoku[view.level];
+    var n = p.size;
+    var cells = view.grid.map(function (v, i) {
+      var cls = "cell" + (view.given[i] ? " given" : "") + (view.sel === i ? " on" : "");
+      if (state.errors && !view.given[i] && v && conflict(i, v, n, p.br, p.bc)) cls += " bad";
+      var inner = v ? String(v) : noteText(view.pencil[i]);
+      return '<button class="' + cls + '" type="button" data-act="cell" data-n="' + i + '"' + (view.given[i] ? " disabled" : "") + ">" + inner + "</button>";
+    }).join("");
+    var pad = "";
+    for (var d = 1; d <= n; d++) pad += '<button type="button" data-act="digit" data-n="' + d + '">' + d + "</button>";
+    pad += '<button type="button" data-act="digit" data-n="0">×</button>';
+    html(head(n + "×" + n + " · " + (view.level + 1) + " / 15") + tools() +
+      '<p class="msg">' + esc(view.clue || (view.notes ? "Карандаш: пометки в клетке." : "Выберите клетку и цифру.")) + "</p>" +
+      '<div class="grid" style="grid-template-columns:repeat(' + n + ",1fr);width:" + (n === 9 ? "100%" : "min(100%,340px)") + '">' + cells + "</div>" +
+      '<div class="pad">' + pad + "</div>");
+  }
+  function noteText(map) {
+    var list = [];
+    Object.keys(map).forEach(function (k) { if (map[k]) list.push(k); });
+    if (!list.length) return "";
+    return '<span class="notes">' + list.join(" ") + "</span>";
+  }
+  function conflict(i, v, n, br, bc) {
+    var r = (i / n) | 0, c = i % n, k, rr, cc;
+    for (k = 0; k < n; k++) {
+      if (k !== c && view.grid[r * n + k] === v) return true;
+      if (k !== r && view.grid[k * n + c] === v) return true;
+    }
+    var r0 = ((r / br) | 0) * br, c0 = ((c / bc) | 0) * bc;
+    for (rr = 0; rr < br; rr++) for (cc = 0; cc < bc; cc++) {
+      var j = (r0 + rr) * n + c0 + cc;
+      if (j !== i && view.grid[j] === v) return true;
+    }
+    return false;
+  }
+  function renderKakuro() {
+    var p = DATA.kakuro[view.level];
+    var lines = p.runs.map(function (run) {
+      var a = run.cells[0], b = run.cells[1];
+      var across = a[0] === b[0];
+      return "<li>" + (across ? "Вправо" : "Вниз") + " от ряда " + (a[0] + 1) + ", столбца " + (a[1] + 1) +
+        ": сумма <b>" + run.sum + "</b>, клеток " + run.idx.length + ".</li>";
+    }).join("");
+    var cells = "";
+    for (var r = 0; r < p.h; r++) {
+      for (var c = 0; c < p.w; c++) {
+        var ix = -1;
+        for (var i = 0; i < p.whites.length; i++) if (p.whites[i][0] === r && p.whites[i][1] === c) ix = i;
+        if (ix < 0) cells += '<div class="kcell block"></div>';
+        else cells += '<button class="cell' + (view.sel === ix ? " on" : "") + '" type="button" data-act="kcell" data-n="' + ix + '">' +
+          (view.grid[ix] || "") + "</button>";
+      }
+    }
+    var pad = "";
+    for (var d = 1; d <= 9; d++) pad += '<button type="button" data-act="kdigit" data-n="' + d + '">' + d + "</button>";
+    pad += '<button type="button" data-act="kdigit" data-n="0">×</button>';
+    html(head("Какуро · " + (view.level + 1) + " / 15") + tools() +
+      '<div class="card clues"><ol>' + lines + "</ol></div>" +
+      '<p class="msg">' + esc(view.clue || "Цифры от 1 до 9, в одном ряду без повторов.") + "</p>" +
+      '<div class="grid kgrid" style="grid-template-columns:repeat(' + p.w + ',1fr);width:min(100%,300px)">' + cells + "</div>" +
+      '<div class="pad">' + pad + "</div>" +
+      '<button class="btn gold" type="button" data-act="check">Проверить</button>');
+  }
+  function renderPattern() {
+    var p = DATA.pattern[view.level];
+    var body = "";
+    if (p.kind === "series") {
+      body = '<div class="chips">' + p.seq.map(function (n) { return '<span class="chip">' + n + "</span>"; }).join("") + '<span class="chip">?</span></div>';
+    } else if (p.kind === "analogy") {
+      body = '<h2>' + esc(p.left) + " : " + esc(p.pair) + " = " + esc(p.right) + " : ?</h2>";
+    } else {
+      var boxes = p.cells.map(fig).join("") + '<span class="figbox">?</span>';
+      body = '<div class="matrix">' + boxes + "</div>";
+    }
+    var choices = p.choices.map(function (c, i) {
+      if (view.hidden[i]) return "";
+      var label = p.kind === "matrix" ? fig(c) : esc(c);
+      return '<button class="choice" type="button" data-act="pick" data-n="' + i + '">' + label + "</button>";
+    }).join("");
+    html(head((view.level + 1) + " из 15") + tools() + body + '<p class="msg">' + esc(view.clue || "") + "</p>" + choices);
+  }
+  function renderWin() {
+    var best = state.best[bestKey()];
+    html(head("Верно") + '<div class="card"><h2>' + NAMES[view.id] + ", ступень " + (view.level + 1) + "</h2>" +
+      '<p class="why">' + esc(view.why || "Решение сходится.") + "</p>" +
+      "<p>Время: " + fmt(view.spent || 0) + (best ? ". Лучшее: " + fmt(best) : "") + ".</p>" +
+      "<p>В полной игре первая решённая задача такого вида за день дала бы монеты и опыт в огород. Здесь счёт огорода не меняется.</p>" +
+      '<button class="btn gold" type="button" data-act="share">Поделиться</button>' +
+      '<button class="btn gold" type="button" data-act="next">Дальше</button></div>');
+  }
+
+  function act(name, node) {
+    if (name === "sound") { state.sound = !state.sound; persist(); render(); return; }
+    if (name === "time") { state.showTime = !state.showTime; persist(); render(); return; }
+    if (name === "errors") { state.errors = !state.errors; persist(); render(); return; }
+    if (name === "notes") { view.notes = !view.notes; render(); return; }
+    if (name === "back") {
+      if (view.name === "levels" || view.name === "win") view = { name: "hub" };
+      else if (view.name !== "hub") view = { name: "levels", id: view.id };
+      render(); return;
+    }
+    if (name === "open") { view = { name: "levels", id: node.getAttribute("data-id") }; render(); return; }
+    if (name === "daily") { var d = dailyRef(); start(d.id, d.level); return; }
+    if (name === "level") { start(view.id, +node.getAttribute("data-n")); return; }
+    if (name === "undo") return undo();
+    if (name === "hint") return hint();
+    if (name === "logic") return tapLogic(node);
+    if (name === "cell") { view.sel = +node.getAttribute("data-n"); render(); return; }
+    if (name === "digit") return putDigit(+node.getAttribute("data-n"));
+    if (name === "kcell") { view.sel = +node.getAttribute("data-n"); render(); return; }
+    if (name === "kdigit") return putKakuro(+node.getAttribute("data-n"));
+    if (name === "check") return check();
+    if (name === "pick") return pick(+node.getAttribute("data-n"));
+    if (name === "next") {
+      if (view.level < 14) start(view.id, view.level + 1);
+      else { var id = view.id; view = { name: "levels", id: id }; render(); }
+      return;
+    }
+    if (name === "share") share();
+  }
+  function undo() {
+    if (!view.undo || !view.undo.length) return;
+    var prev = JSON.parse(view.undo.pop());
+    ["mark", "no", "grid", "pencil", "sel", "hidden"].forEach(function (k) { if (prev[k] != null) view[k] = prev[k]; });
+    render();
+  }
+  function tapLogic(node) {
+    snapshot();
+    var ci = +node.getAttribute("data-c"), vi = +node.getAttribute("data-v"), h = +node.getAttribute("data-h");
+    if (view.mark[ci][vi] === h) { view.mark[ci][vi] = -1; view.no[ci][vi][h] = true; }
+    else if (view.no[ci][vi][h]) view.no[ci][vi][h] = false;
+    else {
+      view.mark[ci][vi] = h;
+      for (var v = 0; v < view.mark[ci].length; v++) if (v !== vi && view.mark[ci][v] === h) view.mark[ci][v] = -1;
+    }
+    render();
+  }
+  function putDigit(n) {
+    if (view.given[view.sel]) return;
+    snapshot();
+    if (view.notes && n) {
+      view.pencil[view.sel][n] = !view.pencil[view.sel][n];
+      view.grid[view.sel] = 0;
+    } else {
+      view.grid[view.sel] = n;
+      view.pencil[view.sel] = {};
+      if (n) moveSel();
+    }
+    if (n && view.grid.every(function (v, i) { return view.given[i] || v; }) && view.grid.every(Boolean)) {
+      var sol = DATA.sudoku[view.level].solution;
+      if (view.grid.join("") === sol) return win("Все цифры встали по правилам поля.");
+    }
+    render();
+  }
+  function moveSel() {
+    var n = view.grid.length, i = view.sel;
+    for (var k = 0; k < n; k++) {
+      i = (i + 1) % n;
+      if (!view.given[i] && !view.grid[i]) { view.sel = i; return; }
+    }
+  }
+  function putKakuro(n) {
+    snapshot();
+    view.grid[view.sel] = n;
+    render();
+  }
+  function check() {
+    if (view.id === "logic") {
+      var p = DATA.logic[view.level];
+      for (var ci = 0; ci < p.cats.length; ci++) {
+        for (var vi = 0; vi < p.cats[ci].values.length; vi++) {
+          if (view.mark[ci][vi] !== p.solution[ci][vi]) {
+            view.clue = "Пока не сходится. Галочка не на том доме.";
+            tone(false); render(); return;
+          }
+        }
+      }
+      return win("Каждое имя, дело, город и год стоят в своём доме.");
+    }
+    if (view.id === "kakuro") {
+      var pk = DATA.kakuro[view.level];
+      if (view.grid.join("") !== pk.solution) {
+        view.clue = "Сумма или повтор цифры ещё не сходятся.";
+        tone(false); render(); return;
+      }
+      return win("Суммы сошлись, цифры в рядах не повторяются.");
+    }
+  }
+  function hint() {
+    if (!view.hintsLeft) { toast("Подсказки на этой ступени кончились"); return; }
+    snapshot();
+    view.hintsLeft--;
+    if (view.id === "logic") {
+      var p = DATA.logic[view.level];
+      for (var ci = 0; ci < p.cats.length; ci++) for (var vi = 0; vi < p.n; vi++) {
+        if (view.mark[ci][vi] !== p.solution[ci][vi]) {
+          view.mark[ci][vi] = p.solution[ci][vi];
+          view.clue = "Одна галочка поставлена. Это бесплатно для счёта.";
+          tone(true); render(); return;
+        }
+      }
+    } else if (view.id === "sudoku") {
+      var sol = DATA.sudoku[view.level].solution.split("").map(Number);
+      for (var i = 0; i < sol.length; i++) if (view.grid[i] !== sol[i]) {
         view.grid[i] = sol[i];
-        view.clue = "Одна цифра уже на месте. Это бесплатно.";
+        view.given[i] = true;
+        view.pencil[i] = {};
+        view.clue = "Одна цифра открыта.";
         tone(true); render(); return;
       }
-      view.clue = "Пустых ошибок не осталось. Проверьте поле.";
-      render();
-    }
-  }
-  function pick(n, node) {
-    var puzzle = view.name === "odd" ? ODD[view.level] : SEQ[view.level];
-    if (n === puzzle.answer) {
-      tone(true);
-      markDone(view.id, view.level);
-      view.name = "win";
-      view.why = puzzle.why;
-      render();
-    } else {
-      tone(false);
-      node.classList.add("bad");
-      var msg = document.getElementById("msg");
-      if (msg) { msg.textContent = "Не то. Попробуйте ещё — очки не снимаются."; msg.className = "msg"; }
-    }
-  }
-  function putNum(n) {
-    if (view.given[view.sel]) return;
-    view.grid[view.sel] = n;
-    view.bad = null;
-    if (view.grid.every(function (x) { return x; })) {
-      var sol = cellsOf(SUDO[view.level].sol);
-      var bad = {};
-      var wrong = false;
-      for (var i = 0; i < 16; i++) if (view.grid[i] !== sol[i]) { bad[i] = true; wrong = true; }
-      if (!wrong) {
-        tone(true);
-        markDone("sudo", view.level);
-        view.name = "win";
-        view.why = "В каждой строке, столбце и квадрате 2×2 цифры 1, 2, 3 и 4 стоят по одному разу.";
-        render();
-        return;
+    } else if (view.id === "kakuro") {
+      var ks = DATA.kakuro[view.level].solution.split("").map(Number);
+      for (var j = 0; j < ks.length; j++) if (view.grid[j] !== ks[j]) {
+        view.grid[j] = ks[j];
+        view.clue = "Одна цифра открыта.";
+        tone(true); render(); return;
       }
-      view.bad = bad;
-      view.clue = "Почти. Красные клетки можно поправить. Подсказка ничего не отнимает.";
-      tone(false);
+    } else if (view.id === "pattern") {
+      var choices = DATA.pattern[view.level].choices;
+      var ans = DATA.pattern[view.level].answer;
+      for (var c = 0; c < choices.length; c++) if (c !== ans && !view.hidden[c]) {
+        view.hidden[c] = true;
+        view.clue = "Один неверный ответ убран.";
+        tone(true); render(); return;
+      }
     }
     render();
   }
+  function pick(n) {
+    var p = DATA.pattern[view.level];
+    if (n === p.answer) win(p.why);
+    else { tone(false); view.clue = "Не то. Очки не снимаются."; render(); }
+  }
+  function win(why) {
+    tone(true);
+    var spent = elapsed();
+    view.spent = spent;
+    view.why = why;
+    state.done[view.id][view.level] = true;
+    var key = bestKey();
+    if (!state.best[key] || spent < state.best[key]) state.best[key] = spent;
+    var daily = dailyRef();
+    if (daily.id === view.id && daily.level === view.level) {
+      state.daily = dayStamp();
+      state.dailyId = daily.id + ":" + daily.level;
+    }
+    persist();
+    view.name = "win";
+    render();
+  }
+  function dayStamp() {
+    var d = new Date();
+    return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+  }
   function share() {
-    var text = "Решила спокойную задачку в «Лаборатории здоровья». Попробуйте и вы.";
+    var text = "Решила серьёзную задачку в «Лаборатории здоровья»: " + NAMES[view.id] + ", ступень " + (view.level + 1) + ".";
     var url = "https://igra.orkestr.online/";
-    var full = text + "\n" + url;
-    function copied() { toast("Скопировано"); }
     if (navigator.share) {
-      navigator.share({ title: "Лаборатория здоровья", text: text, url: url }).then(function () { toast("Готово. Можно отправить друзьям."); }, function (err) {
+      navigator.share({ title: "Лаборатория здоровья", text: text, url: url }).then(function () {
+        toast("Готово. Можно отправить друзьям.");
+      }, function (err) {
         if (err && err.name === "AbortError") toast("Окно закрыто. Поделиться можно позже.");
-        else copy(full, copied);
+        else copy(text + "\n" + url);
       });
-    } else copy(full, copied);
+    } else copy(text + "\n" + url);
   }
-  function copy(text, ok) {
+  function copy(text) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(ok, function () { ok(); });
-    } else ok();
+      navigator.clipboard.writeText(text).then(function () { toast("Скопировано"); }, function () { toast("Скопировано"); });
+    } else toast("Скопировано");
   }
-  render();
+
+  pullCloud(function () { render(); });
 })();
