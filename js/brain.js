@@ -58,7 +58,7 @@
     { id: "schulte", n: "Таблица Шульте", d: "Найдите числа по порядку — тренирует внимание и быстрый взгляд", soon: true },
     { id: "words", n: "Словодел", d: "Составляйте слова из букв одного длинного слова", soon: true },
     { id: "mahjong", n: "Маджонг", d: "Находите пары одинаковых костей", soon: true },
-    { id: "logic", n: "Логические задачи", d: "Небольшие задачки на смекалку, без спешки", soon: true }
+    { id: "logic", n: "Логические задачи", d: "Таблицы, судоку, какуро и ряды — без спешки", soon: true }
   ];
   function find(id) { for (var i = 0; i < GAMES.length; i++) if (GAMES[i].id === id) return GAMES[i]; return null; }
   /* Игра сообщает о себе: { id, n, d, screen, status(), title(), onShow(name) } */
@@ -170,8 +170,8 @@
   function homeStatus() {
     var el = $("brain-status"); if (!el) return;
     var t = overallTitle(), b = null;
-    if (totalPlays()) b = "Звание: «" + (t ? t.name : RANKS[0]) + "» · Шульте, Словодел, Маджонг";
-    el.textContent = b || "Таблица Шульте, Словодел, Маджонг и другие разминки";
+    if (totalPlays()) b = "Звание: «" + (t ? t.name : RANKS[0]) + "» · Шульте, Словодел, Маджонг, задачи";
+    el.textContent = b || "Шульте, Словодел, Маджонг и логические задачи";
   }
 
   function onShow(name) {

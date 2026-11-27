@@ -1,0 +1,83 @@
+/* Логические задачи — стиль A, только внутри .lg */
+.lg {font-size:18px; line-height:1.35; color:var(--text)}
+body.lg-play .signature{display:none}
+.lg h1, .lg h2 {font-family:var(--head); color:var(--green-dark); line-height:1.15; margin:.1em 0 .25em}
+.lg h1 {font-size:1.85rem; text-align:center}
+.lg h2 {font-size:1.25rem}
+.lg .gold {width:88px; height:3px; background:var(--gold); margin:6px auto 10px; border-radius:2px}
+.lg .note {color:var(--muted); text-align:center; margin:0 0 8px; font-size:.95rem}
+.lg .top {display:flex; align-items:center; gap:8px; margin-bottom:8px}
+.lg .top b {flex:1; text-align:center; font-family:var(--head); color:var(--green-dark)}
+.lg .btn {
+  min-height:52px; padding:8px 12px; border-radius:14px; border:2px solid var(--green);
+  background:#fff; color:var(--green-dark); font-weight:800
+}
+.lg .btn.on {background:var(--green); color:#fff}
+.lg .btn.gold {background:var(--gold); border-color:var(--gold-dark); color:#1f2a10; width:100%; margin-top:8px}
+.lg .tools {display:flex; flex-wrap:wrap; gap:8px; margin:6px 0}
+.lg .card {
+  background:var(--card); border:1px solid rgba(196,154,60,.45); border-radius:20px;
+  box-shadow:0 8px 22px rgba(60,50,20,.08); padding:12px 12px 14px; margin:8px 0
+}
+.lg .games {display:flex; flex-direction:column; gap:10px}
+.lg .game {
+  text-align:left; width:100%; min-height:92px; padding:12px 14px; border-radius:18px;
+  border:1px solid rgba(196,154,60,.55); background:linear-gradient(180deg,#fffdf8,#f7f1e2);
+  color:var(--text); box-shadow:0 4px 14px rgba(60,50,20,.06)
+}
+.lg .game b {display:block; font-family:var(--head); font-size:1.25rem; color:var(--green-dark)}
+.lg .game span {color:var(--muted)}
+.lg .game em {font-style:normal; color:var(--gold-dark); font-weight:800}
+.lg .daily {border:2px solid var(--gold); background:#fffaf0}
+.lg .levels {display:flex; flex-wrap:wrap; gap:8px; justify-content:center}
+.lg .lv {
+  width:56px; height:56px; border-radius:14px; border:2px solid var(--green); background:#fff;
+  font-weight:800; color:var(--green-dark)
+}
+.lg .lv.done {background:var(--ok-bg); border-color:var(--ok)}
+.lg .lv small {display:block; font-size:.62rem; font-weight:700; color:var(--muted)}
+.lg .clues {max-height:22vh; overflow:auto; padding-right:4px}
+.lg .clues li {margin:.28em 0}
+.lg .group {margin-top:8px}
+.lg .group h3 {margin:6px 0 4px; font-size:.95rem; letter-spacing:.04em; text-transform:uppercase; color:var(--gold-dark)}
+.lg .grid {display:grid; gap:4px; justify-content:center}
+.lg .cell, .lg .kcell {
+  min-width:0; min-height:40px; border-radius:10px; border:2px solid var(--gold);
+  background:#fff; font-weight:800; color:var(--green-dark); padding:2px; font-size:1rem
+}
+.lg .logic-grid .cell {min-height:46px; font-size:1.15rem}
+.lg .kgrid .cell {min-height:64px; font-family:var(--head); font-size:1.5rem}
+.lg .cell.yes {background:var(--ok-bg); border-color:var(--ok)}
+.lg .cell.no {background:var(--bad-bg); color:var(--bad); border-color:var(--bad)}
+.lg .cell.given, .lg .kcell.block {background:var(--cream-2); color:var(--muted)}
+.lg .cell.on {outline:3px solid var(--green); outline-offset:1px}
+.lg .cell.bad {background:var(--bad-bg); border-color:var(--bad)}
+.lg .kcell.block {border-style:dashed; color:transparent}
+.lg .notes {display:block; font-size:9px; line-height:1.05; font-weight:700; letter-spacing:.02em}
+.lg .pad {display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-top:8px}
+.lg .pad button {min-width:48px; min-height:52px; border-radius:12px; border:0; background:var(--green-dark); color:#fbf6e9; font-weight:800; font-size:1.15rem}
+.lg .msg {min-height:1.3em; text-align:center; font-weight:800; color:var(--gold-dark)}
+.lg .choice {
+  min-height:58px; width:100%; margin:6px 0; border-radius:14px; border:2px solid var(--green);
+  background:#fff; font-weight:800; color:var(--green-dark)
+}
+.lg .choice:disabled {opacity:.35}
+.lg .chips {display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin:8px 0}
+.lg .chip {min-width:48px; min-height:48px; padding:6px 8px; border-radius:12px; background:var(--green-dark); color:#fbf6e9; display:flex; align-items:center; justify-content:center; font-weight:800}
+.lg .matrix {display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:8px auto; width:min(100%,280px)}
+.lg .figbox {min-height:72px; border-radius:12px; border:1px solid rgba(196,154,60,.5); background:#fff; display:flex; align-items:center; justify-content:center; gap:3px}
+.lg .fig {display:inline-block}
+.lg .fig.круг {border-radius:50%}
+.lg .fig.квадрат {border-radius:3px}
+.lg .fig.треугольник {width:0!important; height:0!important; border-left:8px solid transparent; border-right:8px solid transparent; border-bottom:14px solid var(--green); background:transparent!important}
+.lg .fig.зелёный {background:var(--green)}
+.lg .fig.золотой {background:var(--gold)}
+.lg .fig.тёмный {background:var(--green-dark)}
+.lg .why {background:#f4ecd6; border-left:4px solid var(--gold); border-radius:10px; padding:8px 10px}
+.lg .toast {
+  position:fixed; left:0; right:0; bottom:max(12px,env(safe-area-inset-bottom)); width:fit-content; max-width:92vw;
+  margin-inline:auto; background:var(--green-dark); color:#fff; font-size:18px; font-weight:700;
+  padding:8px 14px; border-radius:999px; pointer-events:none; text-align:center
+}
+.lg .toast[hidden] {display:none}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
