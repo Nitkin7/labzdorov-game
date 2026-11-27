@@ -8,6 +8,7 @@
   var $ = function (id) { return document.getElementById(id); };
 
   /* ---------- Сохранение ---------- */
+  /* herbRound и herbsCollected остаются: старые сохранения мини-игры не ломают загрузку. */
   var defaults = {
     points: 0, streak: 0, bestStreak: 0, lastDay: null,
     seen: [], herbRound: 1, font: 1, sound: 0,
@@ -82,7 +83,7 @@
   var toastTimer;
   function toast(msg) {
     var t = $("toast"); t.textContent = msg; t.hidden = false;
-    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.hidden = true; }, 3500);
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.hidden = true; }, 2000);
   }
   function confirmBox(text) {
     return new Promise(function (resolve) {
@@ -101,7 +102,6 @@
     el.classList.add("active"); current = name;
     if (name === "home") renderHome();
     if (name === "quiz-intro") renderQuizIntro();
-    if (name === "herbs-intro") renderHerbsIntro();
     if (name === "tip") renderTip();
     if (name === "settings") renderSettings();
     if (window.LZFarm) LZFarm.onShow(name);
@@ -221,7 +221,6 @@
     var left = hi - S.points;
     $("st-level-hint").textContent = "До уровня «" + levelName(lvl + 1) + "»: " + left + " " + plural(left, "очко", "очка", "очков");
     $("quiz-status").textContent = dailyDone() ? "Вопросы дня пройдены ✓ Можно сыграть ещё" : QUIZ_LEN + " вопросов дня — сохраните серию!";
-    $("herbs-status").textContent = "Сбор №" + S.herbRound + " · " + herbCount(S.herbRound) + " " + plural(herbCount(S.herbRound), "трава", "травы", "трав");
   }
 
   /* ---------- Правда или миф ---------- */
@@ -329,101 +328,6 @@
     go("quiz-result", true);
   }
 
-  /* ---------- Собери травяной сбор ---------- */
-  var H = { herbs: [], order: [], k: 0, tries: 0, gained: 0 };
-
-  function herbCount(round) { return Math.min(3 + Math.floor((round - 1) / 2), 6); }
-
-  function renderHerbsIntro() {
-    var n = herbCount(S.herbRound);
-    $("hi-level-info").textContent = "Сбор №" + S.herbRound + ": " + n + " " + plural(n, "трава", "травы", "трав") + ". За угаданную с первого раза траву — 10 очков.";
-  }
-
-  function pickHerbs(round) {
-    var n = herbCount(round);
-    var order = shuffle(D.herbs.map(function (_, i) { return i; }), seeded(1234 + Math.floor((round - 1) * n / D.herbs.length)));
-    var start = ((round - 1) * n) % D.herbs.length, res = [];
-    for (var i = 0; i < n; i++) res.push(order[(start + i) % order.length]);
-    return res;
-  }
-
-  function herbIcon(h, size) {
-    size = size || 52;
-    var c = h.col, svg;
-    if (h.c === "flower") {
-      var petals = ""; for (var a = 0; a < 360; a += 45) petals += '<ellipse cx="32" cy="17" rx="7" ry="13" fill="' + (h.n === "Ромашка" ? "#fff" : c) + '" stroke="#d9cfa8" stroke-width="1" transform="rotate(' + a + ' 32 32)"/>';
-      svg = petals + '<circle cx="32" cy="32" r="9" fill="' + (h.n === "Ромашка" ? "#f2c230" : "#9a6a1a") + '"/>';
-    } else if (h.c === "berry") {
-      svg = '<path d="M32 8 C30 18 24 22 20 26" stroke="#3f7d35" stroke-width="3" fill="none"/><path d="M34 10 C42 8 50 12 52 18 C44 20 38 16 34 10Z" fill="#5a9a40"/>' +
-        '<circle cx="22" cy="38" r="11" fill="' + c + '"/><circle cx="40" cy="42" r="11" fill="' + c + '"/><circle cx="30" cy="52" r="9" fill="' + c + '"/>' +
-        '<circle cx="19" cy="34" r="3" fill="#fff" opacity=".5"/><circle cx="37" cy="38" r="3" fill="#fff" opacity=".5"/>';
-    } else if (h.c === "root") {
-      svg = '<path d="M30 6 C24 14 22 20 28 24 M34 6 C40 14 42 20 36 24" stroke="#4f8a3a" stroke-width="4" fill="none" stroke-linecap="round"/>' +
-        '<path d="M22 26 C26 22 38 22 42 26 C44 36 38 48 32 58 C26 48 20 36 22 26Z" fill="' + c + '"/>' +
-        '<path d="M26 34 h8 M30 42 h7" stroke="#6b4a22" stroke-width="2" stroke-linecap="round"/>';
-    } else if (h.c === "sprig") {
-      svg = '<path d="M32 60 V8" stroke="#4f7d2e" stroke-width="3"/>';
-      for (var y = 12; y < 54; y += 9) svg += '<ellipse cx="24" cy="' + (y + 3) + '" rx="8" ry="4" fill="' + c + '" transform="rotate(-25 24 ' + (y + 3) + ')"/><ellipse cx="40" cy="' + y + '" rx="8" ry="4" fill="' + c + '" transform="rotate(25 40 ' + y + ')"/>';
-    } else {
-      svg = '<path d="M32 4 C50 14 54 34 32 58 C10 34 14 14 32 4Z" fill="' + c + '"/><path d="M32 10 V56 M32 24 L22 18 M32 24 L42 18 M32 36 L20 30 M32 36 L44 30" stroke="#e8f2d8" stroke-width="2" fill="none" opacity=".8"/>';
-    }
-    return '<svg class="leaf" viewBox="0 0 64 64" width="' + size + '" height="' + size + '" aria-hidden="true">' + svg + "</svg>";
-  }
-
-  function startHerbs() {
-    H.herbs = pickHerbs(S.herbRound);
-    H.order = shuffle(H.herbs); H.k = 0; H.tries = 0; H.gained = 0; H.done = [];
-    $("h-counter").textContent = "Сбор №" + S.herbRound;
-    var grid = $("h-grid"); grid.innerHTML = "";
-    shuffle(H.herbs).forEach(function (i) {
-      var b = document.createElement("button");
-      b.className = "herb-btn"; b.setAttribute("data-herb", i);
-      b.innerHTML = herbIcon(D.herbs[i]) + "<span>" + D.herbs[i].n + "</span>";
-      grid.appendChild(b);
-    });
-    $("h-jar").innerHTML = "";
-    go("herbs", true); renderRiddle();
-  }
-
-  function renderRiddle() {
-    var h = D.herbs[H.order[H.k]];
-    $("h-desc").textContent = h.d;
-    $("h-hint").textContent = ""; $("h-hint").className = "hint";
-    H.tries = 0;
-  }
-
-  function pickHerb(btn) {
-    if (btn.classList.contains("done")) return;
-    var chosen = +btn.getAttribute("data-herb"), target = H.order[H.k];
-    document.querySelectorAll(".herb-btn.wrong").forEach(function (b) { b.classList.remove("wrong"); });
-    if (chosen === target) {
-      var pts = H.tries === 0 ? 10 : 5;
-      S.points += pts; H.gained += pts; S.herbsCollected++; save(); tone(true);
-      btn.classList.add("done"); btn.disabled = true;
-      btn.querySelector("span").textContent = D.herbs[chosen].n + " ✓";
-      $("h-jar").insertAdjacentHTML("beforeend", herbIcon(D.herbs[chosen], 30));
-      $("h-hint").className = "hint ok";
-      $("h-hint").textContent = "Верно, это " + D.herbs[chosen].n.toLowerCase() + "! +" + pts + " " + plural(pts, "очко", "очка", "очков");
-      H.k++;
-      if (H.k >= H.order.length) { setTimeout(finishHerbs, 1100); }
-      else setTimeout(renderRiddle, 1300);
-    } else {
-      H.tries++; tone(false);
-      btn.classList.add("wrong");
-      $("h-hint").className = "hint";
-      $("h-hint").textContent = "Не совсем: " + D.herbs[chosen].n.toLowerCase() + " — " + D.herbs[chosen].f + " Попробуйте ещё.";
-    }
-  }
-
-  function finishHerbs() {
-    S.points += 10; H.gained += 10;
-    var round = S.herbRound; S.herbRound++; save();
-    $("hr-title").textContent = "Сбор №" + round + " собран!";
-    $("hr-points").textContent = "+" + H.gained + " " + plural(H.gained, "очко", "очка", "очков") + " (включая бонус за сбор +10)";
-    $("hr-list").innerHTML = H.herbs.map(function (i) { var h = D.herbs[i]; return "<li><b>" + h.n + "</b> — " + h.f + "</li>"; }).join("");
-    go("herbs-result", true);
-  }
-
   /* ---------- Совет дня ---------- */
   function renderTip() {
     var start = new Date(2026, 0, 1), days = Math.floor((new Date() - start) / 864e5);
@@ -472,9 +376,6 @@
   document.querySelectorAll(".btn-answer").forEach(function (b) {
     b.onclick = function () { answer(b.getAttribute("data-answer") === "true"); };
   });
-  $("btn-herbs-start").onclick = startHerbs;
-  $("btn-herbs-next").onclick = startHerbs;
-  $("h-grid").addEventListener("click", function (e) { var b = e.target.closest(".herb-btn"); if (b) pickHerb(b); });
   $("btn-share-quiz").onclick = function () {
     share("Мой результат в игре «Правда или миф» от «Лаборатории здоровья»: " + $("qr-score").textContent + "! Попробуйте и вы.");
   };
@@ -503,7 +404,6 @@
     if (current === "home") renderHome();
     else if (current === "settings") renderSettings();
     else if (current === "quiz-intro") renderQuizIntro();
-    else if (current === "herbs-intro") renderHerbsIntro();
     else if (current === "tip") renderTip();
   }
   window.LZ = { go: go, show: show, toast: toast, plural: plural, tone: tone, dayKey: dayKey, yesterdayKey: yesterdayKey,
